@@ -3,14 +3,24 @@ import os
 
 import dataloader as dl
 
-data_dir = "D:/CourseWork/CSC494/BrainTissueRegistration/data/files"
+def main():
+    atlas_file = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/MNI152_T1_0.7mm_brain.nii.gz"
+    data_dir = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/HCP_351_T1w_restore_brain"
+    out_dir = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/HCP_351_T1w_restore_brain_labels"
 
-atlas_file = "D:/CourseWork/CSC494/BrainTissueRegistration/data/MNI152_T1_0.7mm_brain_256resampled_norm.nii.gz"
-atlas = dl.load_file(atlas_file)
-shape = atlas.shape
-labels = np.zeros(shape)
+    atlas = dl.load_file(atlas_file)
+    shape = atlas.shape
+    labels = np.ones(shape)
 
-for file in os.listdir(data_dir):
-    ext, _ = dl.check_extensions(file)
-    fname = file[:-len(ext)] + "_labels.nii.gz"
-    dl.save_nii_file(os.path.join(data_dir, fname), labels)
+    print("atlas.shape", atlas.shape)
+    
+    for i, file in enumerate(os.listdir(data_dir)):
+        if i == 0:
+            print("data.shape", dl.load_file(os.path.join(data_dir, file)).shape)
+        
+        dl.save_nii_file(os.path.join(out_dir, file), labels)
+
+
+        
+if __name__ == "__main__":
+    main()
