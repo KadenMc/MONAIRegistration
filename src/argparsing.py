@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 import re
 
@@ -151,8 +152,11 @@ def parse_arguments_main():
         help='Path to save model history')
     
     # Training & data loading arguments
+    parser.add_argument("--resample", type=delimited_ints, default="(64, 64, 64)", help="")
+    parser.add_argument("--cache_rate", type=percent, default=1, help="Percentage of training data to load/cache at once - takes min of cache_rate and cache_num")
+    parser.add_argument("--cache_num", type=int, default=sys.maxsize, help="Number of training samples to load/cache at once - takes min of cache_rate and cache_num")
     parser.add_argument("--verbose", type=int, default=2, help="Training verbosity")
-    parser.add_argument("--batch_size", type=int, default=1, help="Training batch size - highly recommended to use the default, 1.")
+    parser.add_argument("--batch_size", type=int, default=1, help="Training batch size - highly recommended to use the default of 1")
     parser.add_argument("--max_epochs", type=int, default=10, help="Number of epochs")
     parser.add_argument("--val_interval", type=int, default=1, help="Calculatge validation every x epochs during training")
     parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")

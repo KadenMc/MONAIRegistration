@@ -256,7 +256,7 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
     # multi-threads during caching.
 
     train_ds = CacheDataset(data=train_files, transform=train_transforms,
-                            cache_rate=1.0, num_workers=4)
+                            cache_rate=args.cache_rate, cache_num=args.cache_num, num_workers=4)
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
     val_ds = CacheDataset(data=val_files, transform=val_transforms,
@@ -295,7 +295,7 @@ def create_dataloader_infer(val_file):
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
                 mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
                 align_corners=(True, True, None, None),
-                spatial_size=(96, 96, 104)
+                spatial_size=tuple(args.resample_shape)
             ),
             EnsureTyped(
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
