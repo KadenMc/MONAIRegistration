@@ -140,9 +140,10 @@ def parse_arguments_main():
     parser = argparse.ArgumentParser()
 
     # Paths
-    parser.add_argument('data_dir', type=dir_path, help='Path to training data folder')
+    parser.add_argument('images', type=file_or_dir_path, help='Path to folder of images')
+    parser.add_argument('labels', type=file_or_dir_path, help='Path to folder of labels')
     parser.add_argument('atlas_file', type=file_path, help='Path to atlas file')
-    parser.add_argument('atlas_labels_file', type=file_path, help='Path to atlas file')
+    parser.add_argument('atlas_label_file', type=file_path, help='Path to atlas file')
     parser.add_argument('--weights_file', type=file_path, help='Load model weights from file')
     parser.add_argument('--save_weights_file', default=join(MODEL_PATH, 'model.pth'), \
         help='Save model weights to file')

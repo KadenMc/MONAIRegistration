@@ -29,21 +29,23 @@ def get_device(verbose=True):
 
 def get_files(args):
     # Get all non-label files
-    files = [i for i in os.listdir(args.data_dir) if 'label' not in i]
+    images = os.listdir(args.images)
+    labels = os.listdir(args.labels)
 
-    # Function to convert a non-label filename to a label filename
-    def fname_to_label(file):
-        ext, _ = dl.check_extensions(file)
-        return file[:-len(ext)] + "_labels" + ext
+    images = sorted(images)
+    labels = sorted(labels)
+
+    # Assert the images and labels folders have the same files
+    assert len(images) == len(labels) and images == labels
 
     data_dicts = []
-    for file in files:
+    for i, image in enumerate(images):
         data_dicts.append(
             {
                 "fixed_image": args.atlas_file,
-                "moving_image": os.path.join(args.data_dir, file),
-                "fixed_label": args.atlas_labels_file,
-                "moving_label": os.path.join(args.data_dir, fname_to_label(file)),
+                "moving_image": os.path.join(args.images, image),
+                "fixed_label": args.atlas_label_file,
+                "moving_label": os.path.join(args.images, labels[i]),
             }
         )
     
