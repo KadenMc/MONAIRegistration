@@ -1,9 +1,6 @@
-import os, sys
-import neurite as ne
 import numpy as np
-
-import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib
 
 
 def select_backend(path):
@@ -32,34 +29,16 @@ def show_or_save(path):
         plt.savefig(path)
 
 
-# def plot_history(hist, var='loss', path=None):
-#     '''
-#     Plot the training history of a model.
-
-#     hist: The training history
-#     '''
-#     select_backend(path)
-#     plt.plot(hist.epoch, hist.history[var], '.-')
-#     plt.ylabel(var)
-#     plt.xlabel('epoch')
-#     show_or_save(path)
-
-
 def visualize_3d(vols, path=None):
     '''
     Plot slices of a 3D volume by taking a middle slice of each axis.
 
     vols: A 3d volume or list of 3d volumes
     '''
+    import neurite as ne
     select_backend(path)
     ne.plot.volume3D(vols)
     show_or_save(path)
-
-
-def meshgridnd_like(in_img, rng_func=range):
-    new_shape = list(in_img.shape)
-    all_range = [rng_func(i_len) for i_len in new_shape]
-    return tuple([x_arr.swapaxes(0, 1) for x_arr in np.meshgrid(*all_range)])
 
    
 def visualize_deformation(pred, path=None):
@@ -68,6 +47,11 @@ def visualize_deformation(pred, path=None):
 
     pred: The predicted deformation field
     '''
+    
+    def meshgridnd_like(in_img, rng_func=range):
+        new_shape = list(in_img.shape)
+        all_range = [rng_func(i_len) for i_len in new_shape]
+        return tuple([x_arr.swapaxes(0, 1) for x_arr in np.meshgrid(*all_range)])
     
     select_backend(path)
     flow = pred[1].squeeze()
