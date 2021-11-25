@@ -1,31 +1,30 @@
 import torch
 
 # Local imports
+import argparse
 import argparsing as ap
 import model as m
 from dataloader import create_dataloader_infer
 
+def parse_arguments():
+    """
+    Parse arguments for infererence.
+    """
+    parser = argparse.ArgumentParser()
 
-def get_device(verbose=True):
-        """
-        Get the device on which to train.
-        Use a GPU if possible, otherwise CPU.
-        """
-        print("torch.cuda.is_available()", torch.cuda.is_available())
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        if verbose:
-            if device.type == 'cuda':
-                print("Using Device:", torch.cuda.get_device_name(0))
-            else:
-                print("Using Device:", device)
-        
-        return device
+    parser.add_argument('moving_file', type=ap.file_path, help='Path to moving image')
+    parser.add_argument('moving_labels_file', type=ap.file_path, help='Path to moving image')
+    parser.add_argument('fixed_file', type=ap.file_path, help='Path to atlas file')
+    parser.add_argument('fixed_labels_file', type=ap.file_path, help='Path to fixed labels file')
+    parser.add_argument('weights_file', type=ap.file_path, help='Load model weights from file')
+    
+    args = parser.parse_args()
+    return args
 
 
 def main():
     # Parse arguments
-    args = ap.parse_arguments_infer()
+    args = parse_arguments()
     
     # Define data
     data_dict = {
@@ -39,7 +38,7 @@ def main():
     loader = create_dataloader_infer(data_dict)
 
     # Define device
-    device = get_device()
+    device = m.get_device()
 
     # Define model
     args.lr = 0

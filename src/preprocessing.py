@@ -1,12 +1,49 @@
 import numpy as np
 import os
-from os import listdir
-from os.path import join, isdir, isfile
-
+from os.path import join
+import argparse
 
 import argparsing as ap
 import dataloader as dl
 import visualize as vis
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+
+    # Path argument
+    parser.add_argument('data', type=ap.file_or_dir_path, help='Path to data file or folder')
+    parser.add_argument('-s', '--save_path', type=ap.save_file_or_dir_path, help='Path to save data file or folder')
+    parser.add_argument('--slices', action='store_true', \
+        help="If flagged, data_path is expected to be a directory of image slices")
+    parser.add_argument('--slices_dir', action='store_true', \
+        help="If flagged, data_path is expected to be a directory of directories of image slices")
+    
+    # Multiprocessing arguments
+    parser.add_argument("--sequential", action='store_true', \
+        help="If flagged, do not load the data in parallel")
+    parser.add_argument("--processes", type=int, default=4, \
+        help="The number of processes for loading data in parallel")
+
+    # Visualization arguments
+    parser.add_argument("--visualize", action='store_true', \
+        help="If flagged, the data before and after preprocessing")
+
+    # Preprocessing arguments
+    parser.add_argument("--resample_shape", type=ap.delimited_ints, default=None, \
+        help="Resample to shape, e.g., '(256, 256, 256)'")
+    parser.add_argument("--resample_scales", type=ap.delimited_floats, default=None, \
+        help="Resample by axis scale, e.g., '(1.2, 0.9, 1)'")
+    parser.add_argument("--normalize", action='store_true', \
+        help="If flagged, min-max normalize the data")
+    #slices: False
+    #reorder_axes: [0, 2, 1]
+    #rotate: [[1, [1, 2]], [2, [0, 2]]]
+    #pad_shape
+    #normalize
+    
+    args = parser.parse_args()
+    return args
+
 
 def rotate(arr, k, axes=(0, 1)):
     '''
@@ -33,29 +70,6 @@ def min_max_normalize(arr):
     Perform min-max normalization on the data.
     """
     return arr - arr.min()/(arr.max() - arr.min())
-
-"""
-def preprocess(arr, config, pad_shape=None):
-    # Re-order axes
-    if 'reorder_axes' in config:
-        arr = reorder_axes(arr, config['reorder_axes'])
-
-    # Rotate
-    if 'rotate' in config:
-        # Check whether there is multiple rotations
-        if isinstance(config['rotate'][0], list):
-            for lst in config['rotate']:
-                arr = rotate(arr, lst[0], tuple(lst[1]))
-        # Otherwise perform one rotation
-        else:
-            arr = rotate(arr, config['rotate'][0], tuple(config['rotate'][1]))
-    
-    # Pad to shape
-    if pad_shape is not None:
-        arr = pad_to_shape(arr, pad_shape)
-    
-    return arr
-"""
 
 
 def preprocess(arr, args):
@@ -87,119 +101,31 @@ def preprocess(arr, args):
     if args.visualize:
         vis.visualize_3d(arr)
     
-    return arr
+    
+    """
+    # Re-order axes
+    if 'reorder_axes' in config:
+        arr = reorder_axes(arr, config['reorder_axes'])
 
-
-
-def preprocess_slices(args, folder=None, file_out=None):
-    # Define input path
-    f = args.data if folder is None else folder
-    assert isdir(f)
-    
-    # Define save path
-    f_out = args.save_path if file_out is None else file_out
-    
-    # Load, preprocess, and save
-    arr = dl.load_3d(f, True, parallel=args.parallel, processes=args.processes)
-    arr = preprocess(arr, args)
-    if f_out is not None:
-        dl.save_nii_file(f_out, arr)
-    
-    return arr
-
-def preprocess_slices_dir(args):
-    if args.save_path is not None:
-        assert isdir(args.save_path)
-    
-    # Load, preprocess, and save
-    for d in listdir(args.data):
-        save_path = join(args.save_path, d) if args.save_path is not None else None
-        preprocess_slices(args, folder=join(args.data, d), file_out=save_path)
-    
-
-def preprocess_file(args, file=None, file_out=None):
-    # Define input path
-    f = args.data if file is None else file
-    assert isfile(f)
-    
-    # Define save path
-    f_out = args.save_path if file_out is None else file_out
-    
-    # Preprocess and save
-    arr = preprocess(dl.load_file(f), args)
-    if f_out is not None:
-        dl.save_nii_file(f_out, arr)
-    
-    return arr
-
-def preprocess_dir(args):
-    if args.save_path is not None:
-        assert isdir(args.save_path)
-    
-    # Preprocess and save
-    for f in listdir(args.data):
-        # If using extension .nii.gz, save as .nii
-        from dataloader import check_extensions
-        ext, _ = check_extensions(f)
-        if ext == ".nii.gz":
-            save_path = join(args.save_path, f[:-3]) if args.save_path is not None else None
+    # Rotate
+    if 'rotate' in config:
+        # Check whether there is multiple rotations
+        if isinstance(config['rotate'][0], list):
+            for lst in config['rotate']:
+                arr = rotate(arr, lst[0], tuple(lst[1]))
+        # Otherwise perform one rotation
         else:
-            save_path = join(args.save_path, f) if args.save_path is not None else None
-        
-        preprocess_file(args, file=join(args.data, f), file_out=save_path)
-
-
-def main():
-
-    args = ap.parse_arguments_preprocessing()
-
-    # Preprocess a folder of image slices (for a single image)
-    if args.slices:
-        assert isdir(args.data)
-        preprocess_slices(args)
-
-    # Preprocess a folder of folders of image slices (for multiple images)
-    elif args.slices_dir:
-        assert isdir(args.data)
-        preprocess_slices_dir(args)
-        
-    # Preprocess a single file
-    elif isfile(args.data):
-        preprocess_file(args)
+            arr = rotate(arr, config['rotate'][0], tuple(config['rotate'][1]))
     
-    # Preprocess a directory
-    else:
-        preprocess_dir(args)
-        
-
-
-
-
-
+    # Pad to shape
+    if pad_shape is not None:
+        arr = pad_to_shape(arr, pad_shape)
+    
+    return arr
     """
-    if args.preprocess:
-        # If flagged, preprocess and save data
-        preprocess(config, parallel=(not args.sequential), processes=args.processes)
-        return
     """
-
-    #data = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/HCP_351_T1w_restore_brain_256resampled"
-    #data_out = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/HCP_351_T1w_restore_brain_256resampled_norm"
-    #normalize(data, data_out)
-
-    #atlas = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/MNI152_T1_0.7mm_brain_256resampled.nii.gz"
-    #atlas_out = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/MNI152_T1_0.7mm_brain_256resampled_norm.nii.gz"
-    #normalize(atlas, atlas_out)
-    """
-
-    # Load file
-    arr = dl.load_3d(args.file, args.slices, parallel=(not args.sequential), processes=args.processes)
-    print("BEFORE - arr.shape", arr.shape)
 
     assert len(arr.shape) == 3
-    
-    # Visualize
-    vis.visualize_3d(arr)
 
     # Get feedback on axes re-ordering and rotation
     print("Axes Re-order - e.g., '[0, 2, 1]' would switch the last two axes")
@@ -219,23 +145,86 @@ def main():
             ax.remove(i)
             rotations.append([rotation, ax])
 
-    print(rotations)
 
-    config = {
-        "reorder_axes": axes,
-        "rotate": rotations
-    }
+    """
+    return arr
 
-    arr = preprocess(arr, config)
-    print("AFTER - arr.shape", arr.shape)
+
+def preprocess_slices(data, save_path=None, load_fn=dl.load_3d, \
+    process_fn=preprocess, process_args=None, save_fn=dl.save_nii_file, parallel=True, processes=1):
+
+    # Load
+    arr = load_fn(data, True, parallel=parallel, processes=processes)
     
-    # Visualize after
-    #vis.visualize_3d(arr)
+    # Preprocess
+    arr = process_fn(arr, process_args)
+    
+    # Save
+    if save_path is not None:
+        save_fn(save_path, arr)
+    
+    return arr
 
-    # Save oriented
-    #dl.save_nii_file(file, arr)"""
+
+def preprocess_slices_dir(data, save_path=None, load_fn=dl.load_3d, process_fn=preprocess, \
+    process_args=None, save_fn=dl.save_nii_file, parallel=True, processes=1):
+    for d in os.listdir(data):
+        save = None if save_path is None else join(save_path, d)
+        preprocess_slices(join(data, d), save_path=save, load_fn=load_fn, process_fn=process_fn, \
+            process_args=process_args, save_fn=save_fn, parallel=parallel, processes=processes)
 
 
+def preprocess_file(file, save_path=None, load_fn=dl.load_file, \
+    process_fn=preprocess, process_args=None, save_fn=dl.save_nii_file):
+    # Load
+    arr = load_fn(file)
+    
+    # Process
+    arr = process_fn(arr, process_args)
+    
+    # Save
+    if save_path is not None:
+        save_fn(save_path, arr)
+    
+    return arr
+
+
+def preprocess_dir(data, save_path=None, load_fn=dl.load_file, \
+    process_fn=preprocess, process_args=None, save_fn=dl.save_nii_file):
+    for f in os.listdir(data):
+        save = None if save_path is None else join(save_path, f)
+        preprocess_file(join(data, f), save_path=save, load_fn=load_fn, process_fn=process_fn, \
+            process_args=process_args, save_fn=save_fn)
+
+
+def main():
+    # Parse arguments
+    args = parse_arguments()
+
+    # Preprocess a folder of image slices (for a single image)
+    if args.slices:
+        assert os.path.isdir(args.data)
+        preprocess_slices(args.data, save_path=args.save_path, process_args=args, \
+            parallel=args.parallel, processes=args.processes)
+
+    # Preprocess a folder of folders of image slices (for multiple images)
+    elif args.slices_dir:
+        assert os.path.isdir(args.data)
+        preprocess_slices_dir(args.data, save_path=args.save_path, process_args=args, \
+            parallel=args.parallel, processes=args.processes)
+        
+    # Preprocess a single file
+    elif os.path.isfile(args.data):
+        assert os.path.isfile(args.data)
+        preprocess_file(args.data, save_path=args.save_path, process_args=args)
+    
+    # Preprocess a directory
+    elif os.path.isdir(args.data):
+        assert os.path.isdir(args.data)
+        preprocess_dir(args.data, save_path=args.save_path, process_args=args)
+    
+    else:
+        raise Exception("{} should be an existing file or directory.".format(args.data))
 
 
 if __name__ == "__main__":

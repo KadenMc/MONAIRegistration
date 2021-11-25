@@ -1,50 +1,56 @@
 import os
-import numpy as np
-import matplotlib.pyplot as pl
+import argparse
+import matplotlib.pyplot as plt
 
+import argparsing as ap
 import dataloader as dl
-from visualize import visualize_3d
+import preprocessing as pre
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+
+    # Path argument
+    parser.add_argument('data', type=ap.file_or_dir_path, help='Path to data file or folder')
+    parser.add_argument('save_path', type=ap.save_file_or_dir_path, help='Path to save data file or folder')
+    parser.add_argument('-t', '--thresh', type=float, help='Binarize threshold. Defaults to individual data mean')
+    parser.add_argument("--check", action="store_true", help="If flagged, visualizes images and generated labels")
+    args = parser.parse_args()
+    return args
 
 
-def binarize(arr, thresh=None):
-    if thresh is None:
-        thresh = arr.mean()
+def binarize(arr, args):
+    if args.check:
+        from visualize import visualize_3d
+        visualize_3d(arr)
+        print("Mean:", arr.mean())
     
+    thresh = arr.mean() if args.thresh is None else args.thresh
     arr[arr < thresh] = 0
     arr[arr > thresh] = 1
+    
+    if args.check:
+        from visualize import visualize_3d
+        visualize_3d(arr)
+    
     return arr
 
 
-def main(atlas_file, atlas_out, data_dir, out_dir):
-    atlas = dl.load_file(atlas_file)
-    #plt.hist(atlas.flatten(), bins=50)
-    #plt.show()
-    #visualize_3d(atlas)
-    atlas = binarize(atlas, thresh=atlas.mean()/2)
-    #visualize_3d(atlas)
-    dl.save_nii_file(atlas_out, atlas)
-
-    for i, file in enumerate(os.listdir(data_dir)):
-        arr = dl.load_file(os.path.join(data_dir, file))
-        #plt.hist(arr.flatten(), bins=50)
-        #plt.show()
-        #visualize_3d(arr)
-        arr = binarize(arr)
-        #visualize_3d(arr)
-        dl.save_nii_file(os.path.join(out_dir, file), arr)
+def main():
+    args = parse_arguments()
+    
+    # Preprocess a single file
+    if os.path.isfile(args.data):
+        assert os.path.isfile(args.data)
+        pre.preprocess_file(args.data, save_path=args.save_path, process_fn=binarize, process_args=args)
+    
+    # Preprocess a directory
+    elif os.path.isdir(args.data):
+        assert os.path.isdir(args.data)
+        pre.preprocess_dir(args.data, save_path=args.save_path, process_fn=binarize, process_args=args)
+    
+    else:
+        raise Exception("{} should be an existing file or directory.".format(args.data))
 
 
-def check(out_dir):
-    for i, file in enumerate(os.listdir(out_dir)):
-        arr = dl.load_file(os.path.join(out_dir, file))
-        visualize_3d(arr)
-
-
-        
 if __name__ == "__main__":
-    atlas_file = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/MNI152_T1_0.7mm_brain.nii.gz"
-    atlas_out = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/MNI152_T1_0.7mm_brain_labels.nii.gz"
-    data_dir = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/HCP_351_T1w_restore_brain"
-    out_dir = "/home/mckeenka/projects/rrg-mgoubran/deepreg/data/HCP_351_T1w_restore_brain_labels"
-    #main(atlas_file, atlas_out, data_dir, out_dir)
-    check(out_dir)
+    main()

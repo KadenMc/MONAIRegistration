@@ -1,7 +1,8 @@
 import os
-import torch
+import sys
 from monai.config import print_config
 from monai.utils import set_determinism
+import argparse
 
 # Local imports
 import dataloader as dl
@@ -9,22 +10,37 @@ import model as m
 import argparsing as ap
 import visualize as vis
 
+def parse_arguments():
+    parser = argparse.ArgumentParser()
 
-def get_device(verbose=True):
-        """
-        Get the device on which to train.
-        Use a GPU if possible, otherwise CPU.
-        """
-        print("torch.cuda.is_available()", torch.cuda.is_available())
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        if verbose:
-            if device.type == 'cuda':
-                print("Using Device:", torch.cuda.get_device_name(0))
-            else:
-                print("Using Device:", device)
-        
-        return device
+    # Paths
+    parser.add_argument('images', type=ap.file_or_dir_path, help='Path to folder of images')
+    parser.add_argument('labels', type=ap.file_or_dir_path, help='Path to folder of labels')
+    parser.add_argument('atlas_file', type=ap.file_path, help='Path to atlas file')
+    parser.add_argument('atlas_label_file', type=ap.file_path, help='Path to atlas file')
+    parser.add_argument('--weights_file', type=ap.file_path, help='Load model weights from file')
+    parser.add_argument('--save_weights_file', default=ap.join(ap.MODEL_PATH, 'model.pth'), \
+        help='Save model weights to file')
+    parser.add_argument('--history', default=ap.join(ap.VISUALIZE_PATH, 'history.png'), \
+        help='Path to save model history')
+    
+    # Training & data loading arguments
+    parser.add_argument("--resample", type=ap.delimited_ints, default="(64, 64, 64)", help="")
+    parser.add_argument("--cache_rate", type=ap.percent, default=1, help="Percentage of training data to load/cache at once - takes min of cache_rate and cache_num")
+    parser.add_argument("--cache_num", type=int, default=sys.maxsize, help="Number of training samples to load/cache at once - takes min of cache_rate and cache_num")
+    parser.add_argument("--verbose", type=int, default=2, help="Training verbosity")
+    parser.add_argument("--batch_size", type=int, default=1, help="Training batch size - highly recommended to use the default of 1")
+    parser.add_argument("--max_epochs", type=int, default=10, help="Number of epochs")
+    parser.add_argument("--val_interval", type=int, default=1, help="Calculatge validation every x epochs during training")
+    parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
+    parser.add_argument("--val_percent", type=ap.percent, default=0.15, help="Validation dataset percentage")
+    parser.add_argument("--test_percent", type=ap.percent, default=0.15, help="Test dataset percentage")
+    parser.add_argument("--num_workers", type=int, default=0, \
+        help="Number of workers to perform multi-threading during caching. Default of 0 uses no multi-threading")
+    parser.add_argument("--deterministic", action="store_true", help="If flagged, have deterministic training")
+
+    args = parser.parse_args()
+    return args
 
 
 def get_files(args):
@@ -54,7 +70,7 @@ def get_files(args):
 
 def main():
     # Parse arguments
-    args = ap.parse_arguments_main()
+    args = parse_arguments()
     
     # Print MONAI library config    
     print_config()
@@ -78,7 +94,7 @@ def main():
         visualize=True, visualize_path=ap.join(ap.VISUALIZE_PATH, "data.png"))
     
     # Get device
-    device = get_device()#torch.device("cuda:0")
+    device = m.get_device()
 
     # Define model
     model = m.Model(args, device)

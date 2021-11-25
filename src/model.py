@@ -7,6 +7,22 @@ from monai.metrics import DiceMetric
 from monai.networks.blocks import Warp
 from monai.networks.nets import LocalNet
 
+def get_device(verbose=True):
+        """
+        Get the device on which to train.
+        Use a GPU if possible, otherwise CPU.
+        """
+        print("torch.cuda.is_available()", torch.cuda.is_available())
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        if verbose:
+            if device.type == 'cuda':
+                print("Using Device:", torch.cuda.get_device_name(0))
+            else:
+                print("Using Device:", device)
+        
+        return device
+
 class Model:
     def __init__(self, args, device):
         self.model = LocalNet(
