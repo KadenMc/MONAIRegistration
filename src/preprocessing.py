@@ -1,6 +1,5 @@
 import numpy as np
 import os
-from os.path import join
 import argparse
 
 import argparsing as ap
@@ -169,8 +168,8 @@ def preprocess_slices(data, save_path=None, load_fn=dl.load_3d, \
 def preprocess_slices_dir(data, save_path=None, load_fn=dl.load_3d, process_fn=preprocess, \
     process_args=None, save_fn=dl.save_nii_file, parallel=True, processes=1):
     for d in os.listdir(data):
-        save = None if save_path is None else join(save_path, d)
-        preprocess_slices(join(data, d), save_path=save, load_fn=load_fn, process_fn=process_fn, \
+        save = None if save_path is None else ap.join(save_path, d)
+        preprocess_slices(ap.join(data, d), save_path=save, load_fn=load_fn, process_fn=process_fn, \
             process_args=process_args, save_fn=save_fn, parallel=parallel, processes=processes)
 
 
@@ -192,8 +191,8 @@ def preprocess_file(file, save_path=None, load_fn=dl.load_file, \
 def preprocess_dir(data, save_path=None, load_fn=dl.load_file, \
     process_fn=preprocess, process_args=None, save_fn=dl.save_nii_file):
     for f in os.listdir(data):
-        save = None if save_path is None else join(save_path, f)
-        preprocess_file(join(data, f), save_path=save, load_fn=load_fn, process_fn=process_fn, \
+        save = None if save_path is None else ap.join(save_path, f)
+        preprocess_file(ap.join(data, f), save_path=save, load_fn=load_fn, process_fn=process_fn, \
             process_args=process_args, save_fn=save_fn)
 
 

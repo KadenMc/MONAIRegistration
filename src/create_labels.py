@@ -46,6 +46,7 @@ def main():
     # Preprocess a directory
     elif os.path.isdir(args.data):
         assert os.path.isdir(args.data)
+        assert os.path.isdir(args.save_path)
         pre.preprocess_dir(args.data, save_path=args.save_path, process_fn=binarize, process_args=args)
     
     else:

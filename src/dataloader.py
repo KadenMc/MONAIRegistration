@@ -4,6 +4,48 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 
 
+def format_data(moving, moving_labels, fixed, fixed_label):
+    assert os.path.isfile(fixed)
+    assert os.path.isfile(fixed_label)
+    
+    if os.path.isfile(moving):
+        assert os.path.isfile(moving_labels)
+        data_dicts = [{
+            "fixed_image": fixed,
+            "moving_image": moving,
+            "fixed_label": fixed_label,
+            "moving_label": moving_labels,
+        }]
+        
+    elif os.path.isdir(moving):
+        assert os.path.isdir(moving_labels)
+        
+        # Get files in images and corresponding labels directories
+        # Necessary to sort for the below assertion
+        images = sorted(os.listdir(moving))
+        labels = sorted(os.listdir(moving_labels))
+
+        # Assert the images and labels folders have the same files
+        assert len(images) == len(labels) and images == labels
+
+        data_dicts = []
+        for i, image in enumerate(images):
+            data_dicts.append(
+                {
+                    "fixed_image": fixed,
+                    "moving_image": os.path.join(moving, image),
+                    "fixed_label": fixed_label,
+                    "moving_label": os.path.join(moving_labels, labels[i]),
+                }
+            )
+    
+    else:
+        raise Exception("images must be a file or directory")
+    
+        
+    return data_dicts
+
+
 def split_dataset(files, val_percent=0.15, test_percent=0.15, randomize=False):
     assert val_percent + test_percent <= 1
 
@@ -188,6 +230,10 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
         EnsureTyped,
     )
     
+    if args.resample_shape is not None:
+        if any([i % 2 == 1 for i in args.resample_shape]):
+            raise Exception("Spatial dimensions be even. Please use a resample shape with even dimensions")
+    
     train_transforms = Compose(
         [
             LoadImaged(
@@ -267,7 +313,7 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
 
 
 
-def create_dataloader_infer(val_file):
+def create_dataloader_infer(args, val_files):
     from monai.data import DataLoader, CacheDataset
     from monai.transforms import (
         AddChanneld,
@@ -303,6 +349,6 @@ def create_dataloader_infer(val_file):
         ]
     )
     
-    ds = CacheDataset(data=[val_file], transform=transforms, cache_rate=1.0)
+    ds = CacheDataset(data=val_files, transform=transforms, cache_rate=1.0)
     loader = DataLoader(ds, batch_size=1)
     return loader

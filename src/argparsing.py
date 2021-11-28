@@ -1,9 +1,12 @@
 import os
 import argparse
 
-# Define a custom join function which replaces "\\" with "/",
-# which can occasionally cause problems with filepaths otherwise
+
 def join(a, b):
+    """
+    A custom path join function which replaces "\\" with "/". Otherwise, os.path.join can
+    occasionally cause problems with filepaths (especially on Windows).
+    """
     return os.path.join(a, b).replace("\\", "/")
 
 # Define relative paths

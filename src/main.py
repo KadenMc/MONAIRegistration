@@ -14,10 +14,10 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Paths
-    parser.add_argument('images', type=ap.file_or_dir_path, help='Path to folder of images')
-    parser.add_argument('labels', type=ap.file_or_dir_path, help='Path to folder of labels')
-    parser.add_argument('atlas_file', type=ap.file_path, help='Path to atlas file')
-    parser.add_argument('atlas_label_file', type=ap.file_path, help='Path to atlas file')
+    parser.add_argument('images', type=ap.dir_path, help='Path to folder of images')
+    parser.add_argument('labels', type=ap.dir_path, help='Path to folder of labels')
+    parser.add_argument('atlas', type=ap.file_path, help='Path to atlas file')
+    parser.add_argument('atlas_label', type=ap.file_path, help='Path to atlas file')
     parser.add_argument('--weights_file', type=ap.file_path, help='Load model weights from file')
     parser.add_argument('--save_weights_file', default=ap.join(ap.MODEL_PATH, 'model.pth'), \
         help='Save model weights to file')
@@ -25,10 +25,11 @@ def parse_arguments():
         help='Path to save model history')
     
     # Training & data loading arguments
-    parser.add_argument("--resample", type=ap.delimited_ints, default="(64, 64, 64)", help="")
+    parser.add_argument("--resample_ratio", type=float, help="Ratio to which the data is resampled, e.g., 0.5 with shape (100, 150, 50) -> (50, 75, 25)")
+    parser.add_argument("--resample_shape", type=ap.delimited_ints, help="Shape to which the data is resampled")
     parser.add_argument("--cache_rate", type=ap.percent, default=1, help="Percentage of training data to load/cache at once - takes min of cache_rate and cache_num")
     parser.add_argument("--cache_num", type=int, default=sys.maxsize, help="Number of training samples to load/cache at once - takes min of cache_rate and cache_num")
-    parser.add_argument("--verbose", type=int, default=2, help="Training verbosity")
+    parser.add_argument("--verbose", action="store_true", help="If flagged, the program will convey more information through stdout")
     parser.add_argument("--batch_size", type=int, default=1, help="Training batch size - highly recommended to use the default of 1")
     parser.add_argument("--max_epochs", type=int, default=10, help="Number of epochs")
     parser.add_argument("--val_interval", type=int, default=1, help="Calculatge validation every x epochs during training")
@@ -43,31 +44,6 @@ def parse_arguments():
     return args
 
 
-def get_files(args):
-    # Get all non-label files
-    images = os.listdir(args.images)
-    labels = os.listdir(args.labels)
-
-    images = sorted(images)
-    labels = sorted(labels)
-
-    # Assert the images and labels folders have the same files
-    assert len(images) == len(labels) and images == labels
-
-    data_dicts = []
-    for i, image in enumerate(images):
-        data_dicts.append(
-            {
-                "fixed_image": args.atlas_file,
-                "moving_image": os.path.join(args.images, image),
-                "fixed_label": args.atlas_label_file,
-                "moving_label": os.path.join(args.images, labels[i]),
-            }
-        )
-    
-    return data_dicts
-
-
 def main():
     # Parse arguments
     args = parse_arguments()
@@ -75,8 +51,8 @@ def main():
     # Print MONAI library config    
     print_config()
 
-    # Get data files
-    data_dicts = get_files(args)
+    # Format data
+    data_dicts = dl.format_data(args.images, args.labels, args.atlas, args.atlas_label)
     
     # Split into training, validation, and testing
     train_files, val_files, test_files = dl.split_dataset(data_dicts, \

@@ -101,21 +101,22 @@ def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
         print(f"fixed_label shape: {fixed_label.shape}, "
             f"moving_label shape: {moving_label.shape}")
 
-    # plot the slice [:, :, 50]
+    # Plot the slice [:, :, slice]
+    slice = moving_image.shape[2]//2
     select_backend(save_path)
     plt.figure("check", (12, 6))
     plt.subplot(1, 4, 1)
     plt.title("moving_image")
-    plt.imshow(moving_image[:, :, 50], cmap="gray")
+    plt.imshow(moving_image[:, :, slice], cmap="gray")
     plt.subplot(1, 4, 2)
     plt.title("moving_label")
-    plt.imshow(moving_label[:, :, 50])
+    plt.imshow(moving_label[:, :, slice])
     plt.subplot(1, 4, 3)
     plt.title("fixed_image")
-    plt.imshow(fixed_image[:, :, 50], cmap="gray")          
+    plt.imshow(fixed_image[:, :, slice], cmap="gray")          
     plt.subplot(1, 4, 4)
     plt.title("fixed_label")
-    plt.imshow(fixed_label[:, :, 50])
+    plt.imshow(fixed_label[:, :, slice])
     
     show_or_save(save_path)
 

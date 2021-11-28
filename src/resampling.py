@@ -1,5 +1,9 @@
+import os
 import numpy as np
 import SimpleITK as sitk
+
+# Local imports
+import dataloader as dl
 
 
 def resample_image(itk_image, out_spacing=[1.0, 1.0, 1.0], is_label=False):
@@ -59,11 +63,6 @@ def resample_to_shape(arr, shape):
     return resampled_arr
 
 def main():
-    import dataloader as dl
-    import visualize as vis
-    
-    import os
-    
     atlas = dl.load_file("D:/CourseWork/CSC494/BrainTissueRegistration/data/MNI152_T1_0.7mm_brain_256resampled_norm.nii.gz")
     print(atlas.shape)
 
