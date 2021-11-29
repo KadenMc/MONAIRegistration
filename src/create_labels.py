@@ -1,9 +1,9 @@
 import os
 import argparse
+import numpy as np
 import matplotlib.pyplot as plt
 
 import argparsing as ap
-import dataloader as dl
 import preprocessing as pre
 
 def parse_arguments():
@@ -13,6 +13,7 @@ def parse_arguments():
     parser.add_argument('data', type=ap.file_or_dir_path, help='Path to data file or folder')
     parser.add_argument('save_path', type=ap.save_file_or_dir_path, help='Path to save data file or folder')
     parser.add_argument('-t', '--thresh', type=float, help='Binarize threshold. Defaults to individual data mean')
+    parser.add_argument("--fill", action="store_true", help="If flagged, fill gaps in the volumetric data")
     parser.add_argument("--check", action="store_true", help="If flagged, visualizes images and generated labels")
     args = parser.parse_args()
     return args
@@ -28,10 +29,15 @@ def binarize(arr, args):
     arr[arr < thresh] = 0
     arr[arr > thresh] = 1
     
+    if args.fill:
+        import fill_voids
+        arr = fill_voids.fill(arr, in_place=True)
+        
     if args.check:
-        from visualize import visualize_3d
+        from visualize import visualize_3d, visualize_binary_3d
         visualize_3d(arr)
-    
+        visualize_binary_3d(arr)
+        
     return arr
 
 

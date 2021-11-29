@@ -151,3 +151,26 @@ def visualize_inference(moving_image, moving_label, fixed_image, fixed_label, pr
             show_or_save(save_path)
         else:
             show_or_save(save_path[:-4] + '_{}.png'.format(depth))
+
+
+def visualize_binary_3d(arr, save_path=None):
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from skimage import measure
+    # Use marching cubes to obtain the surface mesh
+    verts, faces, normals, values = measure.marching_cubes(arr, 0)
+
+    # Plotting
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    mesh = Poly3DCollection(verts[faces]) # verts[faces] generates a collection of triangles
+    mesh.set_edgecolor('k')
+    ax.add_collection3d(mesh)
+    ax.set_xlim(0, arr.shape[0])
+    ax.set_ylim(0, arr.shape[1])
+    ax.set_zlim(0, arr.shape[2])
+    plt.tight_layout()
+    
+    if save_path is None:
+        show_or_save(save_path)
+    else:
+        show_or_save(save_path)
