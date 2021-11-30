@@ -133,6 +133,7 @@ class Model:
         with torch.no_grad():
             # Deformation field, image, label
             val_ddf, val_pred_image, val_pred_label = self.forward(val_data, device)
+            val_ddf = val_ddf.cpu().numpy()[0, 0].transpose((1, 0, 2))
             val_pred_image = val_pred_image.cpu().numpy()[0, 0].transpose((1, 0, 2))
             val_pred_label = val_pred_label.cpu().numpy()[0, 0].transpose((1, 0, 2))
             val_moving_image = val_data["moving_image"].cpu().numpy()[0, 0].transpose((1, 0, 2))
@@ -146,14 +147,30 @@ class Model:
                     val_fixed_label, val_pred_image, val_pred_label, \
                     visualize_n=visualize_n, save_path=visualize_save_path)
     
-        return val_ddf, val_moving_image, val_moving_label, val_fixed_image, val_fixed_label, \
-            val_pred_image, val_pred_label
+        return val_ddf, val_pred_image, val_pred_label
     
-    def infer_val(self, val_loader, device, visualize=True, visualize_n=10, visualize_save_path=None):
+    def infer_val(self, loader, device, save_path=None, visualize=True, visualize_n=10, visualize_save_path=None):
         # Inference using pretrained weights, visualize the result at different depth
         self.model.eval()
         with torch.no_grad():
-            for i, val_data in enumerate(val_loader):
+            for data in loader:
                 # Deformation field, image, label
-                images = self.infer(val_data, device, visualize=visualize, visualize_n=visualize_n, \
+                images = self.infer(data, device, visualize=visualize, visualize_n=visualize_n, \
                     visualize_save_path=visualize_save_path)
+                
+                if save_path is not None:
+                    from argparsing import join
+                    from dataloader import check_extensions, save_nii_file
+                    from numpy import float64
+                    
+                    # Extract filename information
+                    filename = os.path.basename(os.path.normpath( \
+                        data['moving_image_meta_dict']['filename_or_obj'][0]))
+                    ext = check_extensions(filename)
+                    
+                    # Save files predicted image, deformation field, and label
+                    ddf, pred_image, pred_label = images
+                    save_nii_file(join(save_path, filename[:-len(ext)] + '_ddf.nii.gz'), ddf.astype(float64))
+                    save_nii_file(join(save_path, filename[:-len(ext)] + '_pred.nii.gz'), pred_image.astype(float64))
+                    save_nii_file(join(save_path, filename[:-len(ext)] + '_labels.nii.gz'), pred_label.astype(float64))
+                    

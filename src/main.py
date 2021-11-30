@@ -58,8 +58,8 @@ def main():
     train_files, val_files, test_files = dl.split_dataset(data_dicts, \
         val_percent=args.val_percent, test_percent=args.test_percent)
 
-    print("len(train_files)", len(train_files))
-    print("len(val_files)", len(val_files))
+    print("Number of training files:", len(train_files))
+    print("Number of validation files:", len(val_files))
 
     # If deterministic flagged, set seed to make training deterministic
     if args.deterministic:

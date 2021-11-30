@@ -92,7 +92,7 @@ def extension_matches(file, extension):
     return False
 
 
-def check_extensions(file):
+def check_extensions(file, ignore_unknown=False, return_load_fn=False):
     # Extensions which can be loaded, and their corresponding functions
     extension_dict = {
         '.npy': load_numpy,
@@ -108,8 +108,13 @@ def check_extensions(file):
     exts.sort(key=len, reverse=True)
     for key in exts:
         if extension_matches(file, key):
-            return key, extension_dict[key]
-    return None
+            if return_load_fn:
+                return extension_dict[key]
+            else:
+                return key
+    
+    if not ignore_unknown:
+        raise Exception("File extension not supported")
 
 
 def load_file(file):
@@ -119,15 +124,9 @@ def load_file(file):
     file: The file to load.
     '''
 
-    # Check for extension and its corresponding data loading function
-    args = check_extensions(file)
-
-    # If None is returned, raise an error since the extension is not supported
-    if args is None:
-        raise Exception('This file type is not currently supported.')
-
-    ext, func = args
-    return func(file)
+    # Check extension and get the corresponding data loading function
+    load_fn = check_extensions(file, return_load_fn=True)
+    return load_fn(file)
 
 
 def load_files_parallel(files, processes=4):
@@ -150,7 +149,7 @@ def get_files(path, check_extension=False):
     for file in os.listdir(path):
         if os.path.isfile(os.path.join(path, file)):
             if check_extension:
-                if check_extensions(file) is not None:
+                if check_extensions(file, ignore_unknown=True) is not None:
                     yield file
 
 
@@ -165,7 +164,7 @@ def organize_data_files(data_paths):
         if os.path.isdir(d):
             file_paths.extend(list(get_files(d, check_extension=True)))
         else:
-            if check_extensions(d) is not None:
+            if check_extensions(d, ignore_unknown=True) is not None:
                 file_paths.append(d)
     return file_paths
 
