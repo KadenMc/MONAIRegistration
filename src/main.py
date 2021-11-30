@@ -86,7 +86,7 @@ def main():
     vis.plot_history(args, epoch_loss_values, metric_values, ap.join(ap.VISUALIZE_PATH, "history.png"))
 
     # Perform inference
-    model.infer_val(val_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
+    #model.infer_val(val_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
 
 
 if __name__ == '__main__':

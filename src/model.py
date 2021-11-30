@@ -67,6 +67,7 @@ class Model:
         metric_values = []
 
         for epoch in range(args.max_epochs):
+            # Perform validation
             if (epoch + 1) % args.val_interval == 0 or epoch == 0:
                 self.model.eval()
                 with torch.no_grad():
@@ -93,6 +94,8 @@ class Model:
                         f"best mean dice: {best_metric:.4f} "
                         f"at epoch: {best_metric_epoch}"
                     )
+            
+            # Perform training
             print("-" * 10)
             print(f"epoch {epoch + 1}/{args.max_epochs}")
             self.model.train()

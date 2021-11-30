@@ -216,10 +216,7 @@ def load_3d(path, slices, parallel=True, processes=4):
 
 
 
-
-
-def create_dataloaders(args, train_files, val_files, visualize=False, visualize_path=None):
-    from monai.data import DataLoader, CacheDataset
+def create_transforms(atlas_file, augment_data=True):
     from monai.transforms import (
         AddChanneld,
         Compose,
@@ -230,63 +227,67 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
         EnsureTyped,
     )
     
-    if args.resample_shape is not None:
-        if any([i % 2 == 1 for i in args.resample_shape]):
-            raise Exception("Spatial dimensions be even. Please use a resample shape with even dimensions")
+    # Load the atlas to get info for the ScaleIntensityRanged transform
+    atlas = load_file(atlas_file)
     
-    train_transforms = Compose(
-        [
-            LoadImaged(
+    # Note: In the transforms, the hanging 'd' is necessary for the data
+    # format using dictionaries
+    transforms = [
+        # Load the data
+        LoadImaged(
+            keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
+        ),
+        # Add a channel to the data
+        AddChanneld(
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-            AddChanneld(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-            ScaleIntensityRanged(
-                keys=["fixed_image", "moving_image"],
-                a_min=-285, a_max=3770, b_min=0.0, b_max=1.0, clip=True,
-            ),
+        ),
+        # Scale the intensity of the moving images to that of the atlas
+        ScaleIntensityRanged(
+            keys=["fixed_image"], a_min=atlas.min(), a_max=atlas.max()
+        )
+    ]
+    
+    # Augment data
+    # Useful in training, but ill-advised when validating/inferring
+    if augment_data:
+        transforms.append(
+            # Perform a random affine transformation on the data
             RandAffined(
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
                 mode=('bilinear', 'bilinear', 'nearest', 'nearest'),
                 prob=1.0, spatial_size=(192, 192, 208),
                 rotate_range=(0, 0, np.pi / 15), scale_range=(0.1, 0.1, 0.1)
-            ),
-            Resized(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
-                mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
-                align_corners=(True, True, None, None),
-                spatial_size=(96, 96, 104)
-            ),
-            EnsureTyped(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-        ]
-    )
-    val_transforms = Compose(
-        [
-            LoadImaged(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-            AddChanneld(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-            ScaleIntensityRanged(
-                keys=["fixed_image", "moving_image"],
-                a_min=-285, a_max=3770, b_min=0.0, b_max=1.0,
-                clip=True,
-            ),
-            Resized(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
-                mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
-                align_corners=(True, True, None, None),
-                spatial_size=(96, 96, 104)
-            ),
-            EnsureTyped(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-        ]
-    )
+            )
+        )
+    
+    transforms.extend([
+        # Resize the image
+        Resized(
+            keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
+            mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
+            align_corners=(True, True, None, None),
+            spatial_size=(96, 96, 104)
+        ),
+        # Ensure the input data to be a PyTorch Tensor or numpy array
+        EnsureTyped(
+            keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
+        ),
+    ])
+    
+    return Compose(transforms)
+    
+    
+
+def create_dataloaders(args, train_files, val_files, visualize=False, visualize_path=None):
+    from monai.data import DataLoader, CacheDataset
+    
+    if args.resample_shape is not None:
+        if any([i % 2 == 1 for i in args.resample_shape]):
+            raise Exception("Spatial dimensions be even. Please use a resample shape with even dimensions")
+    
+    # Get data transforms
+    train_transforms = create_transforms(args.atlas, augment_data=True)
+    val_transforms = create_transforms(args.atlas, augment_data=False)
     
     # Visualize dataset
     if visualize:
@@ -315,39 +316,9 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
 
 def create_dataloader_infer(args, val_files):
     from monai.data import DataLoader, CacheDataset
-    from monai.transforms import (
-        AddChanneld,
-        Compose,
-        LoadImaged,
-        Resized,
-        ScaleIntensityRanged,
-        EnsureTyped,
-    )
     
-    transforms = Compose(
-        [
-            LoadImaged(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-            AddChanneld(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-            ScaleIntensityRanged(
-                keys=["fixed_image", "moving_image"],
-                a_min=-285, a_max=3770, b_min=0.0, b_max=1.0,
-                clip=True,
-            ),
-            Resized(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
-                mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
-                align_corners=(True, True, None, None),
-                spatial_size=tuple(args.resample_shape)
-            ),
-            EnsureTyped(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-            ),
-        ]
-    )
+    # Get data transforms
+    transforms = create_transforms(args.fixed, augment_data=False)
     
     ds = CacheDataset(data=val_files, transform=transforms, cache_rate=1.0)
     loader = DataLoader(ds, batch_size=1)
