@@ -36,8 +36,9 @@ def parse_arguments():
     parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
     parser.add_argument("--val_percent", type=ap.percent, default=0.15, help="Validation dataset percentage")
     parser.add_argument("--test_percent", type=ap.percent, default=0.15, help="Test dataset percentage")
-    parser.add_argument("--num_workers", type=int, default=0, \
-        help="Number of workers to perform multi-threading during caching. Default of 0 uses no multi-threading")
+    # Note, if os.cpu_count() - 1 = 0, it will just use the main process
+    parser.add_argument("--num_workers", type=int, default=os.cpu_count() - 1, \
+        help="Number of workers to perform multi-threading during caching. Defaults to the number of CPUs - 1. Value 0 uses no multi-threading")
     parser.add_argument("--deterministic", action="store_true", help="If flagged, have deterministic training")
 
     args = parser.parse_args()

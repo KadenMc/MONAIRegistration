@@ -129,7 +129,7 @@ def load_file(file):
     return load_fn(file)
 
 
-def load_files_parallel(files, processes=4):
+def load_files_parallel(files, processes=os.cpu_count() - 1):
     '''
     Load data files in parallel.
 
@@ -169,7 +169,7 @@ def organize_data_files(data_paths):
     return file_paths
 
 
-def load_3d_slices(files, parallel=True, processes=4):
+def load_3d_slices(files, parallel=True, processes=os.cpu_count() - 1):
     # If parallel, load slices in parallel
     if parallel:
         x = np.dstack(load_files_parallel(files, processes=processes))
@@ -178,7 +178,7 @@ def load_3d_slices(files, parallel=True, processes=4):
         x = np.dstack([load_file(f) for f in files])
 
 
-def load_3d(path, slices, parallel=True, processes=4):
+def load_3d(path, slices, parallel=True, processes=os.cpu_count() - 1):
     '''
     load_3d loads three different kinds of inputs.
     If slices is True, path must be a directory with files which, when ordered by name, represent the ordered slices of a 3d image.
@@ -302,11 +302,10 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
     # multi-threads during caching.
 
     train_ds = CacheDataset(data=train_files, transform=train_transforms,
-                            cache_rate=args.cache_rate, cache_num=args.cache_num, num_workers=4)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+        cache_rate=args.cache_rate, cache_num=args.cache_num)
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
 
-    val_ds = CacheDataset(data=val_files, transform=val_transforms,
-                        cache_rate=1.0, num_workers=0)
+    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0)
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=args.num_workers)
     
     return train_loader, val_loader
