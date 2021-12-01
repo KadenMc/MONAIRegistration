@@ -213,9 +213,31 @@ def load_3d(path, slices, parallel=True, processes=os.cpu_count() - 1):
     # Otherwise, load the data from a single file
     return load_file(path)
 
+def determine_resize_shape(atlas, resize_shape, resize_ratio, d):
+    # Use a ratio
+    if resize_ratio is not None:        
+        # Use the ratio to calculate an approximate (non-integer) shape
+        shape = [i*resize_ratio for i in atlas.shape]
+        
+    # Use a provided size
+    elif resize_shape is not None:
+        shape = resize_shape
+    
+    # Use the atlas size
+    else:
+        shape = atlas.shape
+    
+    # In order to work with some architectures,
+    # use the closest shape divisible by d
+    if d > 1:
+        shape = tuple([int(i - (i % d)) if i % d <= d/2 else \
+            int(i + (d - (i % d))) for i in shape])
+    else:
+        shape = tuple([int(i) for i in shape])
+    return shape
 
 
-def create_transforms(atlas_file, augment_data=True):
+def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_ratio=None, d=8):
     from monai.transforms import (
         AddChanneld,
         Compose,
@@ -246,6 +268,12 @@ def create_transforms(atlas_file, augment_data=True):
         )
     ]
     
+    # Determine shape to which we'll resize the data
+    shape = determine_resize_shape(atlas, resize_shape, resize_ratio, d)
+    
+    # Augment the data to twice the size of this shape
+    augment_shape = tuple([i*2 for i in shape])
+    
     # Augment data
     # Useful in training, but ill-advised when validating/inferring
     if augment_data:
@@ -254,23 +282,28 @@ def create_transforms(atlas_file, augment_data=True):
             RandAffined(
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
                 mode=('bilinear', 'bilinear', 'nearest', 'nearest'),
-                prob=1.0, spatial_size=(192, 192, 208),
+                prob=1.0, spatial_size=augment_shape,
                 rotate_range=(0, 0, np.pi / 15), scale_range=(0.1, 0.1, 0.1)
             )
         )
     
+    # Resize the data
+    print("Resizing to shape {}".format(shape))
     transforms.extend([
         # Resize the image
         Resized(
             keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
             mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
             align_corners=(True, True, None, None),
-            spatial_size=(96, 96, 104)
-        ),
+            spatial_size=shape
+        )
+    ])
+    
+    transforms.extend([
         # Ensure the input data to be a PyTorch Tensor or numpy array
         EnsureTyped(
             keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
-        ),
+        )
     ])
     
     return Compose(transforms)
@@ -280,13 +313,11 @@ def create_transforms(atlas_file, augment_data=True):
 def create_dataloaders(args, train_files, val_files, visualize=False, visualize_path=None):
     from monai.data import DataLoader, CacheDataset
     
-    if args.resample_shape is not None:
-        if any([i % 2 == 1 for i in args.resample_shape]):
-            raise Exception("Spatial dimensions be even. Please use a resample shape with even dimensions")
-    
     # Get data transforms
-    train_transforms = create_transforms(args.atlas, augment_data=True)
-    val_transforms = create_transforms(args.atlas, augment_data=False)
+    train_transforms = create_transforms(args.atlas, augment_data=True, \
+        resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
+    val_transforms = create_transforms(args.atlas, augment_data=False, \
+        resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
     
     # Visualize dataset
     if visualize:
@@ -302,11 +333,11 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
     # multi-threads during caching.
 
     train_ds = CacheDataset(data=train_files, transform=train_transforms,
-        cache_rate=args.cache_rate, cache_num=args.cache_num)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+        cache_rate=args.cache_rate, cache_num=args.cache_num, num_workers=args.num_workers)
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
-    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0)
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=args.num_workers)
+    val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=args.num_workers)
+    val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=0)
     
     return train_loader, val_loader
 
@@ -316,7 +347,8 @@ def create_dataloader_infer(args, val_files):
     from monai.data import DataLoader, CacheDataset
     
     # Get data transforms
-    transforms = create_transforms(args.fixed, augment_data=False)
+    transforms = create_transforms(args.fixed, augment_data=False, \
+        resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
     
     ds = CacheDataset(data=val_files, transform=transforms, cache_rate=1.0)
     loader = DataLoader(ds, batch_size=1)
