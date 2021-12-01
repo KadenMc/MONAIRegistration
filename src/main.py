@@ -36,6 +36,7 @@ def parse_arguments():
     parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
     parser.add_argument("--val_percent", type=ap.percent, default=0.15, help="Validation dataset percentage")
     parser.add_argument("--test_percent", type=ap.percent, default=0.15, help="Test dataset percentage")
+    parser.add_argument("--test", action="store_true", help="If flagged, test at the end of training")
     # Note, if os.cpu_count() - 1 = 0, it will just use the main process
     parser.add_argument("--num_workers", type=int, default=os.cpu_count() - 1, \
         help="Number of workers to perform multi-threading during caching. Defaults to the number of CPUs - 1. Value 0 uses no multi-threading")
@@ -61,6 +62,7 @@ def main():
 
     print("Number of training files:", len(train_files))
     print("Number of validation files:", len(val_files))
+    print("Number of testing files:", len(test_files))
 
     # If deterministic flagged, set seed to make training deterministic
     if args.deterministic:
@@ -86,8 +88,11 @@ def main():
     # Plot history
     vis.plot_history(args, epoch_loss_values, metric_values, ap.join(ap.VISUALIZE_PATH, "history.png"))
 
-    # Perform inference
-    #model.infer_val(val_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
+    # Perform inference on testing data
+    if test:
+        test_loader = create_dataloader_infer(test_files, args.atlas, resize_shape=args.resize_shape, \
+            resize_ratio=args.resize_ratio)
+        model.infer_val(test_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
 
 
 if __name__ == '__main__':

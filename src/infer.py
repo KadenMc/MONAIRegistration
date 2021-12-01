@@ -31,7 +31,8 @@ def main():
     data_dicts = dl.format_data(args.moving, args.moving_labels, args.fixed, args.fixed_label)
     
     # Define data loader
-    loader = dl.create_dataloader_infer(args, data_dicts)
+    loader = dl.create_dataloader_infer(data_dicts, args.fixed, resize_shape=args.resize_shape, \
+        resize_ratio=args.resize_ratio)
 
     # Define device
     device = m.get_device()

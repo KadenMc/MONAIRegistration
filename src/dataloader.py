@@ -343,12 +343,12 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
 
 
 
-def create_dataloader_infer(args, val_files):
+def create_dataloader_infer(val_files, fixed, resize_shape=None, resize_ratio=None):
     from monai.data import DataLoader, CacheDataset
     
     # Get data transforms
     transforms = create_transforms(args.fixed, augment_data=False, \
-        resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
+        resize_shape=resize_shape, resize_ratio=resize_ratio)
     
     ds = CacheDataset(data=val_files, transform=transforms, cache_rate=1.0)
     loader = DataLoader(ds, batch_size=1)
