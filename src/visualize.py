@@ -67,6 +67,9 @@ def visualize_deformation(pred, path=None):
 
 
 def plot_history(args, epoch_loss_values, metric_values, save_path=None):
+    """
+    Plot training history.
+    """
     select_backend(save_path)
     plt.figure("train", (12, 6))
     plt.subplot(1, 2, 1)
@@ -83,6 +86,61 @@ def plot_history(args, epoch_loss_values, metric_values, save_path=None):
     plt.plot(x, y)
     show_or_save(save_path)
 
+
+def plot_slice(img, save_path=None, slice=None, slice_depth_percent=0.5, title=None, display=True):
+    """
+    Plots a given slice in a 3d image.
+    """
+    assert slice is not None or slice_depth_percent is not None
+    select_backend(save_path)
+
+    if slice is None:
+        slice = int(np.round(slice_depth_percent * img.shape[2]))
+
+    if title is None:
+        plt.title('Slice {}/{}'.format(slice, img.shape[2]))
+    else:
+        plt.title(title)
+    
+    if display:
+        plt.imshow(img[:, :, slice], cmap="gray")
+        show_or_save(save_path)
+    
+    return img[:, :, slice]
+
+def plot_slice_overlay(img1, img2, save_path=None, slice=None, slice_depth_percent=0.5, title=None):
+    # Get slices
+    slice1 = plot_slice(img1, slice=slice, slice_depth_percent=slice_depth_percent, display=False)
+    slice2 = plot_slice(img2, slice=slice, slice_depth_percent=slice_depth_percent, display=False)
+    print(slice1.shape)
+    print(slice2.shape)
+    assert slice1.shape == slice2.shape
+    
+    # Create overlay
+    overlay = np.zeros((slice1.shape[0], slice1.shape[1], 3), dtype=np.uint8)
+    
+    scale = lambda x: np.round(((x - x.min())/(x.max() - x.min()))*255).astype(np.uint8)
+    
+    overlay[:, :, 0] = scale(slice1)
+    overlay[:, :, 1] = scale(slice2)
+    plt.imshow(overlay)
+    show_or_save(save_path)
+    
+
+def plot_slices(img, n=10, save_path=None):
+    """
+    Plots a series of slices in a 3d image.
+    """
+    from argparsing import join
+    # Visualize n equally spaced slices
+    select_backend(save_path)
+    for slice in range(n):
+        slice = slice * (img.shape[2] // n)
+        
+        if save_path is None:
+            plot_slice(img, save_path=None, slice=slice)
+        else:
+            plot_slice(img, save_path=join(save_path, 'slice{}'.format(slice) + '.png'), slice=slice)
 
 def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
     from monai.data import DataLoader, Dataset
@@ -122,11 +180,11 @@ def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
 
 
 def visualize_inference(moving_image, moving_label, fixed_image, fixed_label, pred_image, pred_label, \
-    visualize_n=10, save_path=None):
-    # Visualize visualize_n equally spaced slices
+    n=10, save_path=None):
+    # Visualize n equally spaced slices
     select_backend(save_path)
-    for depth in range(visualize_n):
-        depth = depth * (moving_image.shape[2] // visualize_n)
+    for depth in range(n):
+        depth = depth * (moving_image.shape[2] // n)
         # plot the slice [:, :, 80]
         plt.figure(depth, (18, 6))
         plt.subplot(1, 6, 1)
@@ -174,3 +232,13 @@ def visualize_binary_3d(arr, save_path=None):
         show_or_save(save_path)
     else:
         show_or_save(save_path)
+
+
+def main():
+    from dataloader import load_file
+    atlas = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/MNI152_T1_0.7mm_brain.nii.gz")
+    img = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/100408_T1w_restore_brain_affine.nii.gz")
+    plot_slice_overlay(atlas, img)
+
+if __name__ == "__main__":
+    main()
