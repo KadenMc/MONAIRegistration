@@ -213,7 +213,10 @@ def load_3d(path, slices, parallel=True, processes=os.cpu_count() - 1):
     # Otherwise, load the data from a single file
     return load_file(path)
 
-def determine_resize_shape(atlas, resize_shape, resize_ratio, d):
+def determine_resize_shape(atlas_file, resize_shape, resize_ratio, d):
+    # Load the atlas to get the shape info
+    atlas = load_file(atlas_file)
+    
     # Use a ratio
     if resize_ratio is not None:        
         # Use the ratio to calculate an approximate (non-integer) shape
@@ -244,12 +247,9 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
         LoadImaged,
         RandAffined,
         Resized,
-        ScaleIntensityRanged,
+        NormalizeIntensityd,
         EnsureTyped,
     )
-    
-    # Load the atlas to get info for the ScaleIntensityRanged transform
-    atlas = load_file(atlas_file)
     
     # Note: In the transforms, the hanging 'd' is necessary for the data
     # format using dictionaries
@@ -262,14 +262,14 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
         AddChanneld(
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
         ),
-        # Scale the intensity of the moving images to that of the atlas
-        ScaleIntensityRanged(
-            keys=["fixed_image"], a_min=atlas.min(), a_max=atlas.max()
+        # Normalize the intensity of the fixed and moving images
+        NormalizeIntensityd(
+            keys=["fixed_image", "moving_image"]
         )
     ]
     
     # Determine shape to which we'll resize the data
-    shape = determine_resize_shape(atlas, resize_shape, resize_ratio, d)
+    shape = determine_resize_shape(atlas_file, resize_shape, resize_ratio, d)
     
     # Augment the data to twice the size of this shape
     augment_shape = tuple([i*2 for i in shape])
