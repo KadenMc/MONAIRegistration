@@ -247,7 +247,7 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
         LoadImaged,
         RandAffined,
         Resized,
-        NormalizeIntensityd,
+        ScaleIntensityd,
         EnsureTyped,
     )
     
@@ -262,8 +262,8 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
         AddChanneld(
                 keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
         ),
-        # Normalize the intensity of the fixed and moving images
-        NormalizeIntensityd(
+        # Min-max normalize the intensity of the fixed and moving images
+        ScaleIntensityd(
             keys=["fixed_image", "moving_image"]
         )
     ]
