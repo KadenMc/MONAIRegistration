@@ -238,6 +238,16 @@ def main():
     from dataloader import load_file
     atlas = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/MNI152_T1_0.7mm_brain.nii.gz")
     img = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/100408_T1w_restore_brain_affine.nii.gz")
+    
+    from preprocessing import rotate
+    
+    atlas = atlas[:260, 25:311-26, :260]
+    img = img[:260, 25:311-26, :260]
+    
+    #img = rotate(img, 1)
+    
+    print(img.shape)
+    
     plot_slice_overlay(atlas, img)
 
 if __name__ == "__main__":

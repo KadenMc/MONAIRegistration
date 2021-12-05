@@ -89,10 +89,13 @@ def main():
     vis.plot_history(args, epoch_loss_values, metric_values, ap.join(ap.VISUALIZE_PATH, "history.png"))
 
     # Perform inference on testing data
-    if test:
-        test_loader = create_dataloader_infer(test_files, args.atlas, resize_shape=args.resize_shape, \
-            resize_ratio=args.resize_ratio)
-        model.infer_val(test_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
+    if args.test:
+        if args.test_percent == 0:
+            print("Testing data split percentage (test_percent) cannot be 0 when testing")
+        else:
+            test_loader = create_dataloader_infer(test_files, args.atlas, resize_shape=args.resize_shape, \
+                resize_ratio=args.resize_ratio)
+            model.infer_val(test_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
 
 
 if __name__ == '__main__':
