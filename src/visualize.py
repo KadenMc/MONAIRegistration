@@ -176,35 +176,53 @@ def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
     plt.title("fixed_label")
     plt.imshow(fixed_label[:, :, slice])
     
+    # Show if no save path provided, otherwise save
     show_or_save(save_path)
 
 
-def visualize_inference(moving_image, moving_label, fixed_image, fixed_label, pred_image, pred_label, \
-    n=10, save_path=None):
+def visualize_inference(moving_image, fixed_image, pred_image, moving_label=None, \
+    fixed_label=None, pred_label=None, n=10, save_path=None):
     # Visualize n equally spaced slices
     select_backend(save_path)
     for depth in range(n):
         depth = depth * (moving_image.shape[2] // n)
-        # plot the slice [:, :, 80]
         plt.figure(depth, (18, 6))
+
+        # Plot moving image
         plt.subplot(1, 6, 1)
         plt.title(f"moving_image d={depth}")
         plt.imshow(moving_image[:, :, depth], cmap="gray")
+        
+        # Plot predicted image
         plt.subplot(1, 6, 2)
-        plt.title(f"moving_label d={depth}")
-        plt.imshow(moving_label[:, :, depth])
+        plt.title(f"pred_image d={depth}")
+        plt.imshow(pred_image[:, :, depth], cmap="gray")
+
+        # Plot fixed image
         plt.subplot(1, 6, 3)
         plt.title(f"fixed_image d={depth}")
         plt.imshow(fixed_image[:, :, depth], cmap="gray")
-        plt.subplot(1, 6, 4)
-        plt.title(f"fixed_label d={depth}")
-        plt.imshow(fixed_label[:, :, depth])
-        plt.subplot(1, 6, 5)
-        plt.title(f"pred_image d={depth}")
-        plt.imshow(pred_image[:, :, depth], cmap="gray")
-        plt.subplot(1, 6, 6)
-        plt.title(f"pred_label d={depth}")
-        plt.imshow(pred_label[:, :, depth])
+        
+        
+        # Plot moving label
+        if moving_label is not None:
+            plt.subplot(1, 6, 4)
+            plt.title(f"moving_label d={depth}")
+            plt.imshow(moving_label[:, :, depth])
+        
+        # Plot predicted label
+        if pred_label is not None:
+            plt.subplot(1, 6, 5)
+            plt.title(f"pred_label d={depth}")
+            plt.imshow(pred_label[:, :, depth])
+
+        # Plot fixed label
+        if fixed_label is not None:
+            plt.subplot(1, 6, 6)
+            plt.title(f"fixed_label d={depth}")
+            plt.imshow(fixed_label[:, :, depth])
+        
+        # Show if no save path provided, otherwise save
         if save_path is None:
             show_or_save(save_path)
         else:
@@ -228,6 +246,7 @@ def visualize_binary_3d(arr, save_path=None):
     ax.set_zlim(0, arr.shape[2])
     plt.tight_layout()
     
+    # Show if no save path provided, otherwise save
     if save_path is None:
         show_or_save(save_path)
     else:
@@ -237,18 +256,23 @@ def visualize_binary_3d(arr, save_path=None):
 def main():
     from dataloader import load_file
     atlas = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/MNI152_T1_0.7mm_brain.nii.gz")
-    img = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/100408_T1w_restore_brain_affine.nii.gz")
+    #img = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/100408_T1w_restore_brain_affine.nii.gz")
     
     from preprocessing import rotate
+    atlas = rotate(atlas, 3)
     
-    atlas = atlas[:260, 25:311-26, :260]
-    img = img[:260, 25:311-26, :260]
+    plot_slice(atlas, slice=130, title="atlas d=50")
+    #plot_slices(atlas)
+    #
+    
+    #atlas = atlas[:260, 25:311-26, :260]
+    #img = img[:260, 25:311-26, :260]
     
     #img = rotate(img, 1)
     
-    print(img.shape)
+    #print(img.shape)
     
-    plot_slice_overlay(atlas, img)
+    #plot_slice_overlay(atlas, img)
 
 if __name__ == "__main__":
     main()

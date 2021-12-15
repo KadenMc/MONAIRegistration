@@ -14,14 +14,14 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Paths
-    parser.add_argument('images', type=ap.dir_path, help='Path to folder of images')
-    parser.add_argument('labels', type=ap.dir_path, help='Path to folder of labels')
-    parser.add_argument('atlas', type=ap.file_path, help='Path to atlas file')
-    parser.add_argument('atlas_label', type=ap.file_path, help='Path to atlas file')
+    parser.add_argument('moving', type=ap.dir_path, help='Path to directory of moving images')
+    parser.add_argument('fixed', type=ap.file_path, help='Path to fixed image')
+    parser.add_argument('moving_labels', type=ap.dir_path, help='Path to directory of labels')
+    parser.add_argument('fixed_label', type=ap.file_path, help='Path to fixed label')
     parser.add_argument('--weights_file', type=ap.file_path, help='Load model weights from file')
     parser.add_argument('--save_weights_file', default=ap.join(ap.MODEL_PATH, 'model.pth'), \
         help='Save model weights to file')
-    parser.add_argument('--history', default=ap.join(ap.VISUALIZE_PATH, 'history.png'), \
+    parser.add_argument('--history', type=ap.save_image_path, default=ap.join(ap.VISUALIZE_PATH, 'history.png'), \
         help='Path to save model history')
     
     # Training & data loading arguments
@@ -54,7 +54,7 @@ def main():
     print_config()
 
     # Format data
-    data_dicts = dl.format_data(args.images, args.labels, args.atlas, args.atlas_label)
+    data_dicts = dl.format_data(args.moving, args.fixed, args.labels, args.fixed_label)
     
     # Split into training, validation, and testing
     train_files, val_files, test_files = dl.split_dataset(data_dicts, \
@@ -93,7 +93,7 @@ def main():
         if args.test_percent == 0:
             print("Testing data split percentage (test_percent) cannot be 0 when testing")
         else:
-            test_loader = create_dataloader_infer(test_files, args.atlas, resize_shape=args.resize_shape, \
+            test_loader = create_dataloader_infer(test_files, args.fixed, resize_shape=args.resize_shape, \
                 resize_ratio=args.resize_ratio)
             model.infer_val(test_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
 

@@ -4,45 +4,46 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 
 
-def format_data(moving, moving_labels, fixed, fixed_label):
-    assert os.path.isfile(fixed)
-    assert os.path.isfile(fixed_label)
-    
+def format_data(moving, fixed, moving_labels, fixed_label):
     if os.path.isfile(moving):
-        assert os.path.isfile(moving_labels)
         data_dicts = [{
             "fixed_image": fixed,
             "moving_image": moving,
-            "fixed_label": fixed_label,
-            "moving_label": moving_labels,
         }]
         
-    elif os.path.isdir(moving):
-        assert os.path.isdir(moving_labels)
+        if fixed_label is not None:
+            data_dicts[0]["fixed_label"] = fixed_label
         
+        if moving_labels is not None:
+            data_dicts[0]["moving_label"] = moving_labels
+        
+    elif os.path.isdir(moving):
         # Get files in images and corresponding labels directories
         # Necessary to sort for the below assertion
         images = sorted(os.listdir(moving))
-        labels = sorted(os.listdir(moving_labels))
+
+        if moving_labels is not None:
+            labels = sorted(os.listdir(moving_labels))
+        else:
+            labels = None
 
         # Assert the images and labels folders have the same files
         assert len(images) == len(labels) and images == labels
 
         data_dicts = []
         for i, image in enumerate(images):
-            data_dicts.append(
-                {
+            data_dicts.append({
                     "fixed_image": fixed,
                     "moving_image": os.path.join(moving, image),
-                    "fixed_label": fixed_label,
-                    "moving_label": os.path.join(moving_labels, labels[i]),
-                }
-            )
-    
-    else:
-        raise Exception("images must be a file or directory")
-    
+            })
+            
+            if fixed_label is not None:
+                data_dicts[-1]["fixed_label"] = fixed_label
         
+            if labels is not None:
+                data_dicts[-1]["moving_label"] = os.path.join(moving_labels, labels[i])
+    
+    
     return data_dicts
 
 
@@ -213,22 +214,22 @@ def load_3d(path, slices, parallel=True, processes=os.cpu_count() - 1):
     # Otherwise, load the data from a single file
     return load_file(path)
 
-def determine_resize_shape(atlas_file, resize_shape, resize_ratio, d):
-    # Load the atlas to get the shape info
-    atlas = load_file(atlas_file)
+def determine_resize_shape(fixed_file, resize_shape, resize_ratio, d):
+    # Load the fixed image to get the shape info
+    fixed = load_file(fixed_file)
     
     # Use a ratio
     if resize_ratio is not None:        
         # Use the ratio to calculate an approximate (non-integer) shape
-        shape = [i*resize_ratio for i in atlas.shape]
+        shape = [i*resize_ratio for i in fixed.shape]
         
     # Use a provided size
     elif resize_shape is not None:
         shape = resize_shape
     
-    # Use the atlas size
+    # Use the fixed image size
     else:
-        shape = atlas.shape
+        shape = fixed.shape
     
     # In order to work with some architectures,
     # use the closest shape divisible by d
@@ -237,10 +238,14 @@ def determine_resize_shape(atlas_file, resize_shape, resize_ratio, d):
             int(i + (d - (i % d))) for i in shape])
     else:
         shape = tuple([int(i) for i in shape])
+    
     return shape
 
+def keep_in_keys(keys, lst):
+    return [i for i in lst if i in keys]
 
-def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_ratio=None, d=8):
+
+def create_transforms(fixed_file, keys, augment_data=True, resize_shape=None, resize_ratio=None, d=8):
     from monai.transforms import (
         AddChanneld,
         Compose,
@@ -256,27 +261,27 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
     transforms = [
         # Load the data
         LoadImaged(
-            keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
+            keys=keep_in_keys(keys, ["fixed_image", "moving_image", "fixed_label", "moving_label"])
         ),
         # Add a channel to the data
         AddChanneld(
-                keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
+                keys=keep_in_keys(keys, ["fixed_image", "moving_image", "fixed_label", "moving_label"])
         ),
         # Min-max normalize the intensity of the fixed and moving images
         ScaleIntensityd(
-            keys=["fixed_image", "moving_image"]
+            keys=keep_in_keys(keys, ["fixed_image", "moving_image"])
         )
     ]
     
     # Determine shape to which we'll resize the data
-    shape = determine_resize_shape(atlas_file, resize_shape, resize_ratio, d)
+    shape = determine_resize_shape(fixed_file, resize_shape, resize_ratio, d)
     
-    # Augment the data to twice the size of this shape
-    augment_shape = tuple([i*2 for i in shape])
-    
-    # Augment data
-    # Useful in training, but ill-advised when validating/inferring
+    # Augment data - used only during training
     if augment_data:
+        """
+        # Augment the data to twice the size of this shape
+        augment_shape = tuple([i*2 for i in shape])
+        
         transforms.append(
             # Perform a random affine transformation on the data
             RandAffined(
@@ -286,15 +291,20 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
                 rotate_range=(0, 0, np.pi / 15), scale_range=(0.1, 0.1, 0.1)
             )
         )
-    
+        """
+        pass
+
     # Resize the data
     print("Resizing to shape {}".format(shape))
+    resize_keys = keep_in_keys(keys, ["fixed_image", "moving_image", "fixed_label", "moving_label"])
+    resize_mode = ["trilinear" if "image" in i else "nearest" for i in resize_keys]
+    resize_align_corners = [True if "image" in i else None for i in resize_keys]
     transforms.extend([
         # Resize the image
         Resized(
-            keys=["fixed_image", "moving_image", "fixed_label", "moving_label"],
-            mode=('trilinear', 'trilinear', 'nearest', 'nearest'),
-            align_corners=(True, True, None, None),
+            keys=resize_keys,
+            mode=resize_mode,
+            align_corners=resize_align_corners,
             spatial_size=shape
         )
     ])
@@ -302,7 +312,7 @@ def create_transforms(atlas_file, augment_data=True, resize_shape=None, resize_r
     transforms.extend([
         # Ensure the input data to be a PyTorch Tensor or numpy array
         EnsureTyped(
-            keys=["fixed_image", "moving_image", "fixed_label", "moving_label"]
+            keys=keep_in_keys(keys, ["fixed_image", "moving_image", "fixed_label", "moving_label"])
         )
     ])
     
@@ -314,10 +324,10 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
     from monai.data import DataLoader, CacheDataset
     
     # Get data transforms
-    train_transforms = create_transforms(args.atlas, augment_data=True, \
-        resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
-    val_transforms = create_transforms(args.atlas, augment_data=False, \
-        resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
+    train_transforms = create_transforms(args.fixed, keys=list(train_files[0].keys()), \
+        augment_data=True, resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
+    val_transforms = create_transforms(args.fixed, keys=list(val_files[0].keys()), \
+        augment_data=False, resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
     
     # Visualize dataset
     if visualize:
@@ -332,10 +342,12 @@ def create_dataloaders(args, train_files, val_files, visualize=False, visualize_
     # use the minimum value of the 2 settings. And set num_workers to enable
     # multi-threads during caching.
 
+    # Create training dataset and dataloader
     train_ds = CacheDataset(data=train_files, transform=train_transforms,
         cache_rate=args.cache_rate, cache_num=args.cache_num, num_workers=args.num_workers)
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
+    # Create validation dataset and dataloader
     val_ds = CacheDataset(data=val_files, transform=val_transforms, cache_rate=1.0, num_workers=args.num_workers)
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=0)
     
@@ -347,8 +359,8 @@ def create_dataloader_infer(val_files, fixed, resize_shape=None, resize_ratio=No
     from monai.data import DataLoader, CacheDataset
     
     # Get data transforms
-    transforms = create_transforms(args.fixed, augment_data=False, \
-        resize_shape=resize_shape, resize_ratio=resize_ratio)
+    transforms = create_transforms(fixed, keys=list(val_files[0].keys()), \
+        augment_data=False, resize_shape=resize_shape, resize_ratio=resize_ratio)
     
     ds = CacheDataset(data=val_files, transform=transforms, cache_rate=1.0)
     loader = DataLoader(ds, batch_size=1)

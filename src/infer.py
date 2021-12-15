@@ -11,9 +11,10 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('moving', type=ap.file_or_dir_path, help='Path to moving image file or directory')
-    parser.add_argument('moving_labels', type=ap.file_or_dir_path, help='Path to corresponding label file or directory')
     parser.add_argument('fixed', type=ap.file_path, help='Path to atlas file')
-    parser.add_argument('fixed_label', type=ap.file_path, help='Path to fixed labels file')
+    parser.add_argument('--moving_labels', type=ap.file_or_dir_path, help='Path to corresponding label file or directory. \
+        Not required for inference.')
+    parser.add_argument('--fixed_label', type=ap.file_path, help='Path to fixed labels file. Not required for inference.')
     parser.add_argument('weights_file', type=ap.file_path, help='Load model weights from file')
     parser.add_argument('--save_path', type=ap.dir_path, help='Directory path to save inferred images, DDFs, and labels')
     parser.add_argument("--resize_ratio", type=float, help="Ratio to which the data is resized, e.g., 0.5 with shape (100, 150, 50) -> (50, 75, 25)")
@@ -28,7 +29,7 @@ def main():
     args = parse_arguments()
     
     # Format data
-    data_dicts = dl.format_data(args.moving, args.moving_labels, args.fixed, args.fixed_label)
+    data_dicts = dl.format_data(args.moving, args.fixed, args.moving_labels, args.fixed_label)
     
     # Define data loader
     loader = dl.create_dataloader_infer(data_dicts, args.fixed, resize_shape=args.resize_shape, \

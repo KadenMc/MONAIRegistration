@@ -52,6 +52,14 @@ def save_file_path(path):
     else:
         raise argparse.ArgumentTypeError("{} is not a valid directory path to save a file".format(os.path.dirname(path)))
 
+def save_image_path(path):
+    if os.path.isdir(os.path.dirname(path)):
+        if path[-4:] in ['.png', '.jpg']:
+            return path
+        else:
+            raise argparse.ArgumentTypeError("Expected file extensions '.png' or '.jpg' for {}".format(path))
+    else:
+        raise argparse.ArgumentTypeError("{} is not a valid directory path to save a file".format(os.path.dirname(path)))
 
 def save_dir_path(path):
     if os.path.isdir(path):

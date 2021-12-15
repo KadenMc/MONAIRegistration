@@ -49,14 +49,30 @@ class Model:
         moving_image = batch_data["moving_image"].to(device)
         moving_label = batch_data["moving_label"].to(device)
 
-        # predict DDF through LocalNet
+        # Predict DDF through LocalNet
         ddf = self.model(torch.cat((moving_image, fixed_image), dim=1))
 
-        # warp moving image and label with the predicted ddf
+        # Warp moving image and label with the predicted DDF
         pred_image = self.warp_layer(moving_image, ddf)
         pred_label = self.warp_layer(moving_label, ddf)
 
         return ddf, pred_image, pred_label
+    
+    def forward_val(self, batch_data, device):
+        # If a moving label is provided, return a warped label prediction
+        # Otherwise, return only the DDF and warped image
+        if "moving_label" in batch_data:
+            return self.forward(batch_data, device)
+        
+        fixed_image = batch_data["fixed_image"].to(device)
+        moving_image = batch_data["moving_image"].to(device)
+
+        # Predict DDF through LocalNet
+        ddf = self.model(torch.cat((moving_image, fixed_image), dim=1))
+
+        # Warp moving image with the predicted DDF
+        pred_image = self.warp_layer(moving_image, ddf)
+        return ddf, pred_image, None
     
     
     def train(self, args, train_loader, val_loader, device, model_path):
@@ -128,36 +144,37 @@ class Model:
 
         return epoch_loss_values, metric_values
     
-    def infer(self, val_data, device, visualize=True, visualize_n=10, visualize_save_path=None):
-        self.model.eval()
-        with torch.no_grad():
-            # Deformation field, image, label
-            val_ddf, val_pred_image, val_pred_label = self.forward(val_data, device)
-            val_ddf = val_ddf.cpu().numpy()[0, 0].transpose((1, 0, 2))
-            val_pred_image = val_pred_image.cpu().numpy()[0, 0].transpose((1, 0, 2))
-            val_pred_label = val_pred_label.cpu().numpy()[0, 0].transpose((1, 0, 2))
-            val_moving_image = val_data["moving_image"].cpu().numpy()[0, 0].transpose((1, 0, 2))
-            val_moving_label = val_data["moving_label"].cpu().numpy()[0, 0].transpose((1, 0, 2))
-            val_fixed_image = val_data["fixed_image"].cpu().numpy()[0, 0].transpose((1, 0, 2))
-            val_fixed_label = val_data["fixed_label"].cpu().numpy()[0, 0].transpose((1, 0, 2))
-
-            if visualize:
-                from visualize import visualize_inference
-                visualize_inference(val_moving_image, val_moving_label, val_fixed_image, \
-                    val_fixed_label, val_pred_image, val_pred_label, \
-                    visualize_n=visualize_n, save_path=visualize_save_path)
-    
-        return val_ddf, val_pred_image, val_pred_label
-    
     def infer_val(self, loader, device, save_path=None, visualize=True, visualize_n=10, visualize_save_path=None):
-        # Inference using pretrained weights, visualize the result at different depth
         self.model.eval()
         with torch.no_grad():
             for data in loader:
-                # Deformation field, image, label
-                images = self.infer(data, device, visualize=visualize, visualize_n=visualize_n, \
-                    visualize_save_path=visualize_save_path)
+                # Get deformation field, image, label
+                ddf, pred_image, pred_label = self.forward_val(data, device)
+
+                # Prepare images for visualization and saving
+                moving_image = data["moving_image"].cpu().numpy()[0, 0].transpose((1, 0, 2))
+                fixed_image = data["fixed_image"].cpu().numpy()[0, 0].transpose((1, 0, 2))
+                ddf = ddf.cpu().numpy()[0, 0].transpose((1, 0, 2))
+                pred_image = pred_image.cpu().numpy()[0, 0].transpose((1, 0, 2))
+
+                # If labels were provided
+                if pred_label is not None:
+                    pred_label = pred_label.cpu().numpy()[0, 0].transpose((1, 0, 2))
+                    moving_label = data["moving_label"].cpu().numpy()[0, 0].transpose((1, 0, 2))
+                    fixed_label = data["fixed_label"].cpu().numpy()[0, 0].transpose((1, 0, 2))
+                else:
+                    pred_label = None
+                    moving_label = None
+                    fixed_label = None
                 
+                # Visualize
+                if visualize:
+                    from visualize import visualize_inference
+                    visualize_inference(moving_image, fixed_image, pred_image, \
+                        moving_label=moving_label, fixed_label=fixed_label, pred_label=pred_label, \
+                        n=visualize_n, save_path=visualize_save_path)
+                
+                # Save the files
                 if save_path is not None:
                     from argparsing import join
                     from dataloader import check_extensions, save_nii_file
@@ -169,8 +186,10 @@ class Model:
                     ext = check_extensions(filename)
                     
                     # Save files predicted image, deformation field, and label
-                    ddf, pred_image, pred_label = images
                     save_nii_file(join(save_path, filename[:-len(ext)] + '_ddf.nii.gz'), ddf.astype(float64))
                     save_nii_file(join(save_path, filename[:-len(ext)] + '_pred.nii.gz'), pred_image.astype(float64))
-                    save_nii_file(join(save_path, filename[:-len(ext)] + '_labels.nii.gz'), pred_label.astype(float64))
+
+                    # Only saves if a moving label was provided
+                    if pred_label is not None:
+                        save_nii_file(join(save_path, filename[:-len(ext)] + '_labels.nii.gz'), pred_label.astype(float64))
                     
