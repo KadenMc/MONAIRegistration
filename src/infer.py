@@ -38,15 +38,14 @@ def main():
     # Define device
     device = m.get_device()
 
-    # Define model
-    args.lr = 0
-    model = m.Model(args, device)
+    # Define model and load weights
+    model = m.Model(device)
     model.load_weights(args.weights_file)
 
     # Infer (visualize if a single file)
     from os.path import isfile
     visualize = isfile(args.moving)
-    model.infer_val(loader, device, save_path=args.save_path, visualize=visualize)
+    model.infer(loader, device, save_path=args.save_path, visualize=visualize)
 
 
 if __name__ == "__main__":

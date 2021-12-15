@@ -76,14 +76,15 @@ def main():
     device = m.get_device()
 
     # Define model
-    model = m.Model(args, device)
+    model = m.Model(device, lr=args.lr)
 
     # If args.weights is specified, load the weights from file
     if args.weights_file is not None:
         model.load_weights(args.weights_file)
 
     # Train model
-    epoch_loss_values, metric_values = model.train(args, train_loader, val_loader, device, ap.MODEL_PATH)
+    epoch_loss_values, metric_values = model.train(args, train_loader, val_loader, device, \
+        args.max_epochs, save_weights_file=args.save_weights_file, val_interval=args.val_interval)
 
     # Plot history
     vis.plot_history(args, epoch_loss_values, metric_values, ap.join(ap.VISUALIZE_PATH, "history.png"))
