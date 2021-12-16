@@ -16,6 +16,7 @@ from dipy.align.transforms import (
     AffineTransform3D
 )
 
+# Local imports
 import argparsing as ap
 import preprocessing as pre
 import visualize as vis
@@ -25,18 +26,31 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Path argument
-    parser.add_argument('data', type=ap.file_or_dir_path, help='Path to data file or folder')
-    parser.add_argument('atlas', type=ap.file_or_dir_path, help='Path to data file or folder')
+    parser.add_argument('moving', type=ap.file_or_dir_path, help='Path to moving image file or directory')
+    parser.add_argument('fixed', type=ap.file_path, help='Path to fixed image file')
     parser.add_argument('save_path', type=ap.save_file_or_dir_path, help='Path to save data file or folder')
-    parser.add_argument("--check", action="store_true", help="If flagged, visualizes images and generated labels")
+    parser.add_argument("--visualize", action="store_true", help="If flagged, visualizes images and generated labels")
     args = parser.parse_args()
     return args
 
 
 def affine_transform(arr, theta=0, trans=[0, 0, 0], scale=[1, 1, 1], \
     output_shape=None):
-    from scipy.ndimage import affine_transform
+    """
+    Performs an affine transformation on a 3D image given rotation, translation, and scaling.
+
+    Parameters:
+        arr (numpy.ndarray): 3D image.
+        theta (float): Rotation in radians.
+        trans (list<float>): Translation in each axis.
+        scale (list<float>): Scaling in each axis.
+        output_shape (tuple<int>): Output image shape.
     
+    Returns:
+        transformed (numpy.ndarray): The transformed image.
+    """
+    
+    # Compose the corresponding affine transformation matrix
     rot_matrix = np.array([
         [np.cos(theta), -np.sin(theta), 0, 0],
         [np.sin(theta), np.cos(theta), 0, 0],
@@ -61,15 +75,25 @@ def affine_transform(arr, theta=0, trans=[0, 0, 0], scale=[1, 1, 1], \
     matrix = np.matmul(scale_matrix, trans_matrix)
     matrix = np.matmul(matrix, rot_matrix)
     
+    # Transform the image
     if output_shape is None:
         output_shape = arr.shape
+    else:
+        assert len(output_shape) == 3
     
-    return affine_transform(arr, matrix, output_shape=output_shape)
+    from scipy.ndimage import affine_transform
+    transformed = affine_transform(arr, matrix, output_shape=output_shape)
+    
+    return transformed
 
 
 def align_com(moving, static):
     """
-    Align center of mass of a moving image to a static image
+    Align the center of mass of a moving image to that of a static image.
+
+    Parameters:
+        moving (numpy.ndarray): 3D moving image.
+        static (numpy.ndarray): 3D static image.
     """
     from scipy.ndimage.measurements import center_of_mass
     moving_com = center_of_mass(moving)
@@ -80,15 +104,22 @@ def align_com(moving, static):
 
 
 def register_affine(moving, args):
-    assert fixed.shape == moving.shape
-    
-    vis.plot_slice(moving)    
+    """
+    Affinely register a moving image to a fixed image.
 
-    if args.check:
-        vis.plot_slice_overlay(moving, fixed)
+    Parameters:
+        moving (numpy.ndarray): 3D moving image.
+        args (dict):
+            <fixed> (np.ndarray): 3D fixed image.
+            <visualize> (bool): Whether to visualize the input and transformed image.
+    """
+    assert args.fixed.shape == moving.shape
+
+    if args.visualize:
+        vis.plot_slice_overlay(moving, args.fixed)
 
     # Begin with a simple center of mass alignment
-    moving, static = align_com(moving, fixed)
+    moving, static = align_com(moving, args.fixed)
 
     # Perform affine registration
     affreg = AffineRegistration()
@@ -115,8 +146,8 @@ def register_affine(moving, args):
     # Get the registered image
     transformed = affine.transform(moving)
     
-    if args.check:
-        vis.plot_slice_overlay(transformed, fixed)
+    if args.visualize:
+        vis.plot_slice_overlay(transformed, args.fixed)
     
     # Return transformed image
     return transformed
@@ -125,23 +156,23 @@ def register_affine(moving, args):
 def main():
     args = parse_arguments()
     
+    # Load the fixed image and set it as one of the function arguments
     from dataloader import load_file
-    global fixed
-    fixed = load_file(args.atlas)
+    args.fixed = load_file(args.fixed)
 
     # Preprocess a single file
-    if os.path.isfile(args.data):
-        assert os.path.isfile(args.data)
-        pre.preprocess_file(args.data, save_path=args.save_path, process_fn=register_affine, process_args=args)
+    if os.path.isfile(args.moving):
+        assert os.path.isfile(args.moving)
+        pre.preprocess_file(args.moving, save_path=args.save_path, process_fn=register_affine, process_args=args)
     
     # Preprocess a directory
-    elif os.path.isdir(args.data):
-        assert os.path.isdir(args.data)
+    elif os.path.isdir(args.moving):
+        assert os.path.isdir(args.moving)
         assert os.path.isdir(args.save_path)
-        pre.preprocess_dir(args.data, save_path=args.save_path, process_fn=register_affine, process_args=args)
+        pre.preprocess_dir(args.moving, save_path=args.save_path, process_fn=register_affine, process_args=args)
     
     else:
-        raise Exception("{} should be an existing file or directory.".format(args.data))
+        raise Exception("{} should be an existing file or directory.".format(args.moving))
 
 
 if __name__ == "__main__":
