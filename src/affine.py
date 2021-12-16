@@ -26,9 +26,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Path argument
-    parser.add_argument('moving', type=ap.path, help='Path to moving image file or directory')
-    parser.add_argument('fixed', type=ap.file_path, help='Path to fixed image file')
-    parser.add_argument('save_path', type=ap.path, help='Path to save data file or folder')
+    parser.add_argument('moving', type=ap.path, help='Moving image file or directory')
+    parser.add_argument('fixed', type=ap.file_path, help='Fixed image file')
+    parser.add_argument('save_path', type=ap.path, help='Path to save data file or directory')
     parser.add_argument("--visualize", action="store_true", help="If flagged, visualizes images and generated labels")
     args = parser.parse_args()
     return args

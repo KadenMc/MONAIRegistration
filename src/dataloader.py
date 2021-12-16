@@ -86,7 +86,7 @@ def format_data(moving, fixed, moving_labels=None, fixed_label=None):
         else:
             labels = None
 
-        # Assert the images and labels folders have the same files
+        # Assert the images and labels directories have the same files
         assert len(images) == len(labels) and images == labels
 
         data_dicts = []

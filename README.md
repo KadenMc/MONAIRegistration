@@ -1,4 +1,27 @@
 # MONAIRegistration
-An unsupervised deep-learning method for deformable, pairwise brain tissue image registration.
 
-We formulate registration as a function that maps an input image pair to a deformation field that aligns these images utilizing the MONAI library for learning-based image registration.
+An unsupervised, deep-learning pipeline for deformable, atlas-based, pairwise image registration, utilizing the MONAI library.
+
+We formulate registration as a function that maps an input image pair to a deformation field which aligns these images. It is assumed that all moving images are registered to some constant fixed image, i.e., an atlas.
+
+
+&nbsp;
+
+
+## Files &amp; Usage
+
+
+Files with command-line arguments &amp; related **--help** functionality:
+
+- `main.py`: Train the model.
+- `infer.py`: Infer with a trained model.
+- `create_labels.py`: Create binary region of interest labels.
+- `preprocessing.py`: Preprocess a file or directory of files.
+- `affine.py`: Perform affine registration.
+
+Supporting files:
+- `argparsing.py`: Generalized functioning required for command-line argparsing.
+- `dataloader.py`: Data formatting, loading, saving, and transforms.
+- `model.py`: Model, training, and inference functionality.
+- `resampling.py`: Image resampling.
+- `visualize.py`: Visualization functionality.

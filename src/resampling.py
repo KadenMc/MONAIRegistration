@@ -96,21 +96,3 @@ def resample_to_shape(arr, shape):
     # Pad to the correct shape
     resampled_arr = pad_centered(resampled_arr, shape)
     return resampled_arr
-
-def main():
-    atlas = dl.load_file("D:/CourseWork/CSC494/BrainTissueRegistration/data/MNI152_T1_0.7mm_brain_256resampled_norm.nii.gz")
-    print(atlas.shape)
-
-    shape = (64, 64, 64)
-    
-    if os.name == "nt":
-        resampled = resample_to_shape(atlas, shape)
-    else:
-        import ants
-        resampled = ants.resample_image(atlas, shape, 1, 0)
-    
-    print(resampled.shape)
-
-
-if __name__ == "__main__":
-    main()

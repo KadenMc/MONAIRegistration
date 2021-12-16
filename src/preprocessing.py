@@ -10,12 +10,12 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Path argument
-    parser.add_argument('data', type=ap.path, help='Path to data file or folder')
-    parser.add_argument('-s', '--save_path', type=ap.save_path, help='Path to save data file or folder')
+    parser.add_argument('data', type=ap.path, help='Path to data file or directory')
+    parser.add_argument('-s', '--save_path', type=ap.save_path, help='Path to save data file or directory')
     parser.add_argument('--slices', action='store_true', \
-        help="If flagged, data_path is expected to be a directory of image slices")
+        help="If flagged, data is expected to be a directory of image slices")
     parser.add_argument('--slices_dir', action='store_true', \
-        help="If flagged, data_path is expected to be a directory of directories of image slices")
+        help="If flagged, data is expected to be a directory of directories of image slices")
     
     # Multiprocessing arguments
     parser.add_argument("--sequential", action='store_true', \
@@ -343,13 +343,13 @@ def main():
     # Parse arguments
     args = parse_arguments()
 
-    # Preprocess a folder of image slices (for a single image)
+    # Preprocess a directory of image slices (for a single image)
     if args.slices:
         assert os.path.isdir(args.data)
         preprocess_slices(args.data, save_path=args.save_path, process_args=args, \
             parallel=args.parallel, processes=args.processes)
 
-    # Preprocess a folder of folders of image slices (for multiple images)
+    # Preprocess a directory of directories of image slices (for multiple images)
     elif args.slices_dir:
         assert os.path.isdir(args.data)
         preprocess_slices_dir(args.data, save_path=args.save_path, process_args=args, \
