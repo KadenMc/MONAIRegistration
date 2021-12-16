@@ -70,8 +70,8 @@ class Model:
         Model initialization.
 
         Parameters:
-            device (torch.device): Device on which to train
-            lr (float): Learning rate
+            device (torch.device): Device on which to train.
+            lr (float): Learning rate.
         """
         self.model = LocalNet(
             spatial_dims=3,
@@ -138,7 +138,7 @@ class Model:
             ddf (torch.FloatTensor): Dense deformation field.
             pred_image (torch.FloatTensor): Warped moving image.
             pred_label (torch.FloatTensor, None): A warped moving image label if a moving label
-                is provided, otherwise None
+                is provided, otherwise None.
         """
         # If a moving label is provided, return a warped label prediction
         # Otherwise, return only the DDF and warped image
@@ -162,16 +162,16 @@ class Model:
         Trains the model and may perform validation at the end of each epoch.
 
         Parameters:
-            train_loader (monai.data.DataLoader): Training dataloader
-            val_loader (monai.data.DataLoader): Validation dataloader
-            device (torch.device): Device on which to train
-            max_epochs (int): Maximum number of epochs
-            save_weights_file (str): File to save the model weights
-            val_interval (int): Perform validation every 'val_interval' epochs
+            train_loader (monai.data.DataLoader): Training dataloader.
+            val_loader (monai.data.DataLoader): Validation dataloader.
+            device (torch.device): Device on which to train.
+            max_epochs (int): Maximum number of epochs.
+            save_weights_file (str): File to save the model weights.
+            val_interval (int): Perform validation every 'val_interval' epochs.
         
         Returns:
-            epoch_loss_values (list<float>): Average batch loss over each epoch
-            metric_values (list<float>): Average batch metric over each epoch
+            epoch_loss_values (list<float>): Average batch loss over each epoch.
+            metric_values (list<float>): Average batch metric over each epoch.
         """
         best_metric = -1
         best_metric_epoch = -1

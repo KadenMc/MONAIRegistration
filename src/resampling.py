@@ -7,6 +7,18 @@ import dataloader as dl
 
 
 def resample_image(itk_image, out_spacing=[1.0, 1.0, 1.0], is_label=False):
+    """
+    Resamples an image given some axis scale ratios.
+
+    Parameters:
+        itk_image (SimpleITK.SimpleITK.Image): A SimpleITK image.
+        out_spacing (list<float>): Scale ratios for each axis.
+        is_label (bool): If True, use nearest neighbour interpolation,
+            otherwise use spline interpolation.
+    
+    Returns:
+        (SimpleITK.SimpleITK.Image): The resampled image.
+    """
     original_spacing = itk_image.GetSpacing()
     original_size = itk_image.GetSize()
 
@@ -32,22 +44,45 @@ def resample_image(itk_image, out_spacing=[1.0, 1.0, 1.0], is_label=False):
     return resample.Execute(itk_image) 
 
 
-def pad_centered(a, shape):
-    assert(len(a.shape) == len(shape))
-    pad_sizes = [(shape[i] - a.shape[i])//2 for i in range(len(shape))]
+def pad_centered(arr, shape):
+    """
+    Pads an array to a given shape, keeping the original array centered.
+
+    Parameters:
+        arr (numpy.ndarray): Array to pad
+        shape (tuple<int>): Shape to which to pad.
+    
+    Returns:
+        (numpy.ndarray): A center padded image.
+    """
+    assert len(arr.shape) == len(shape)
+    assert [arr.shape[i] <= shape[i] for i in range(len(shape))]
+
+    pad_sizes = [(shape[i] - arr.shape[i])//2 for i in range(len(shape))]
     
     padding = []
     for i, p in enumerate(pad_sizes):
-        if (shape[i] - a.shape[i]) % 2 == 0:
+        if (shape[i] - arr.shape[i]) % 2 == 0:
             padding.append((p, p))
         else:
             padding.append((p, p + 1))
     
-    centered = np.pad(a, padding, mode='constant')
+    centered = np.pad(arr, padding, mode='constant')
     return centered
 
 
 def resample_to_shape(arr, shape):
+    """
+    Resample an image to a given shape without any stretching/rescaling.
+
+    Parameters:
+        arr (numpy.ndarray): Array to resample.
+        shape (tuple<int>): Shape to which to resample.
+    
+    Returns:
+        (numpy.ndarray): The resampled image.
+    """
+
     # Determine maximum possible scale
     scales = np.array(arr.shape)/np.array(shape)
     scale = scales.max()

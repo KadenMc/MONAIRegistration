@@ -84,20 +84,23 @@ def main():
         model.load_weights(args.weights_file)
 
     # Train model
-    epoch_loss_values, metric_values = model.train(args, train_loader, val_loader, device, \
-        args.max_epochs, save_weights_file=args.save_weights_file, val_interval=args.val_interval)
+    losses, metrics = model.train(args, train_loader, val_loader, device, \
+        args.max_epochs, save_weights_file=args.save_weights_file, \
+        val_interval=args.val_interval)
 
     # Plot history
-    vis.plot_history(args, epoch_loss_values, metric_values, ap.join(ap.VISUALIZE_PATH, "history.png"))
+    vis.plot_history(losses, metrics, save_path=ap.join(ap.VISUALIZE_PATH, \
+        "history.png"), val_interval=args.val_interval)
 
     # Perform inference on testing data
     if args.test:
         if args.test_percent == 0:
             print("Testing data split percentage (test_percent) cannot be 0 when testing")
         else:
-            test_loader = create_dataloader_infer(test_files, args.fixed, resize_shape=args.resize_shape, \
-                resize_ratio=args.resize_ratio)
-            model.infer_val(test_loader, device, visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
+            test_loader = create_dataloader_infer(test_files, args.fixed, \
+                resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
+            model.infer_val(test_loader, device, \
+                visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
 
 
 if __name__ == '__main__':

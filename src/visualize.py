@@ -3,58 +3,67 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 
-def select_backend(path):
+def select_backend(save_path):
     """
-    Selects an interactive or non-interactive matplotlib backend
-    depending on whether the figure is being saved to file.
+    Selects an interactive or non-interactive matplotlib backend depending on
+    whether the figure is being saved to file, i.e., whether path is None.
     
-    path: Figure save path
+    Parameters:
+        save_path (str, None): Figure save path.
     """
-    if path is None:
+    if save_path is None:
         matplotlib.use('TkAgg')
     else:
         matplotlib.use('Agg')
 
 
-def show_or_save(path):
+def show_or_save(save_path):
     """
-    Interatively displays an image, or saves it to file,
-    depending on whether a path is specified.
+    Interatively displays an image, or saves it to file, depending on whether a
+    path is specified.
     
-    path: Figure save path
+    Parameters:
+        save_path (str, None): Figure save path.
     """
-    if path is None:
+    if save_path is None:
         plt.show()
     else:
-        plt.savefig(path)
+        plt.savefig(save_path)
 
 
-def visualize_3d(vols, path=None):
-    '''
+def visualize_3d(vols, save_path=None):
+    """
     Plot slices of a 3D volume by taking a middle slice of each axis.
 
-    vols: A 3d volume or list of 3d volumes
-    '''
+    Parameters:
+        vols (numpy.ndarray, list<numpy.ndarray>): 3D image or list of 3D images.
+        save_path (str, None): Figure save path.
+    """
+    # Select the plotting backend
+    select_backend(save_path)
+
     import neurite as ne
-    select_backend(path)
     ne.plot.volume3D(vols)
-    show_or_save(path)
+    show_or_save(save_path)
 
    
-def visualize_deformation(pred, path=None):
-    '''
+def visualize_deformation(ddf, save_path=None):
+    """
     Visualize the deformation field.
 
-    pred: The predicted deformation field
-    '''
+    Parameters:
+        ddf (numpy.ndarray): A dense deformation field.
+        save_path (str, None): Figure save path.
+    """
+    # Select the plotting backend
+    select_backend(save_path)
     
     def meshgridnd_like(in_img, rng_func=range):
         new_shape = list(in_img.shape)
         all_range = [rng_func(i_len) for i_len in new_shape]
         return tuple([x_arr.swapaxes(0, 1) for x_arr in np.meshgrid(*all_range)])
     
-    select_backend(path)
-    flow = pred[1].squeeze()
+    flow = ddf[1].squeeze()
     DS_FACTOR = 16
     c_xx, c_yy, c_zz = [x.flatten() for x in \
         meshgridnd_like(flow[::DS_FACTOR, ::DS_FACTOR, ::DS_FACTOR, 0])]
@@ -63,21 +72,33 @@ def visualize_deformation(pred, path=None):
     ax = fig.gca(projection='3d')
     ax.quiver(c_xx, c_yy, c_zz, get_flow(0), get_flow(1), get_flow(2), \
         length=0.9, normalize=True)
-    show_or_save(path)
+    show_or_save(save_path)
 
 
-def plot_history(args, epoch_loss_values, metric_values, save_path=None):
+def plot_history(epoch_loss_values, metric_values, save_path=None, val_interval=1):
     """
     Plot training history.
+
+    Parameters:
+        epoch_loss_values (list<float>): Average batch loss over each epoch.
+        metric_values (list<float>): Average batch metric over each epoch.
+        save_path (str, None): Figure save path.
+        val_interval (int): Plot validation point every 'val_interval' epochs.
     """
+    # Select the plotting backend
     select_backend(save_path)
+
     plt.figure("train", (12, 6))
     plt.subplot(1, 2, 1)
+    
+    # Plot loss
     plt.title("Epoch Average Loss")
     x = [i + 1 for i in range(len(epoch_loss_values))]
     y = epoch_loss_values
     plt.xlabel("epoch")
     plt.plot(x, y)
+
+    # Plot metrics
     plt.subplot(1, 2, 2)
     plt.title("Val Mean Dice")
     x = [args.val_interval * (i + 1) for i in range(len(metric_values))]
@@ -89,9 +110,23 @@ def plot_history(args, epoch_loss_values, metric_values, save_path=None):
 
 def plot_slice(img, save_path=None, slice=None, slice_depth_percent=0.5, title=None, display=True):
     """
-    Plots a given slice in a 3d image.
+    Returns a given slice in a 3D image, and potentially visualizes it.
+
+    Parameters:
+        img (numpy.ndarray): 3D image.
+        save_path (str, None): Figure save path.
+        slice (int, None): Slice to visualize.
+        slice_depth_percent (float, None): Rather than specifying a slice,
+            specify approximately how deep into the image to visualize.
+        title (str, None): Plot title.
+        display (bool): Whether to visualize the slice, or simply return it.
+    
+    Returns:
+        (numpy.ndarray): Image slice.
     """
     assert slice is not None or slice_depth_percent is not None
+    
+    # Select the plotting backend
     select_backend(save_path)
 
     if slice is None:
@@ -109,11 +144,24 @@ def plot_slice(img, save_path=None, slice=None, slice_depth_percent=0.5, title=N
     return img[:, :, slice]
 
 def plot_slice_overlay(img1, img2, save_path=None, slice=None, slice_depth_percent=0.5, title=None):
+    """
+    Visualizes two overlayed slices from two 3D images.
+
+    Parameters:
+        img1 (numpy.ndarray): 3D image.
+        img2 (numpy.ndarray): 3D image.
+        save_path (str, None): Figure save path.
+        slice (int, None): Slice to visualize.
+        slice_depth_percent (float, None): Rather than specifying a slice,
+            specify approximately how deep into the image to visualize.
+        title (str, None): Plot title.
+    """
+    # Select the plotting backend
+    select_backend(save_path)
+
     # Get slices
     slice1 = plot_slice(img1, slice=slice, slice_depth_percent=slice_depth_percent, display=False)
     slice2 = plot_slice(img2, slice=slice, slice_depth_percent=slice_depth_percent, display=False)
-    print(slice1.shape)
-    print(slice2.shape)
     assert slice1.shape == slice2.shape
     
     # Create overlay
@@ -124,16 +172,25 @@ def plot_slice_overlay(img1, img2, save_path=None, slice=None, slice_depth_perce
     overlay[:, :, 0] = scale(slice1)
     overlay[:, :, 1] = scale(slice2)
     plt.imshow(overlay)
+
+    # Show if no save path provided, otherwise save
     show_or_save(save_path)
     
 
 def plot_slices(img, n=10, save_path=None):
     """
-    Plots a series of slices in a 3d image.
+    Plots a series of slices in a 3D image.
+
+    Parameters:
+        img (numpy.ndarray): 3D image.
+        n (int): Number of slices to visualize.
+        save_path (str, None): Figure save path.
     """
+    # Select the plotting backend
+    select_backend(save_path)
+
     from argparsing import join
     # Visualize n equally spaced slices
-    select_backend(save_path)
     for slice in range(n):
         slice = slice * (img.shape[2] // n)
         
@@ -142,10 +199,24 @@ def plot_slices(img, n=10, save_path=None):
         else:
             plot_slice(img, save_path=join(save_path, 'slice{}'.format(slice) + '.png'), slice=slice)
 
-def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
+
+def check_dataset(files, transforms, verbose=True, save_path=None):
+    """
+    Plots a set of registration input images.
+
+    Parameters:
+        files (list<dict>): MONAI dictionary formatted data.
+        transforms (monai.transforms.compose.Compose): MONAI transforms to
+            apply - also used to load the data.
+        verbose (bool): Whether to print information about the loaded data.
+        save_path (str, None): Figure save path.
+    """
+    # Select the plotting backend
+    select_backend(save_path)
+
     from monai.data import DataLoader, Dataset
     from monai.utils import first
-    check_ds = Dataset(data=train_files, transform=train_transforms)
+    check_ds = Dataset(data=files, transform=transforms)
     check_loader = DataLoader(check_ds, batch_size=1)
     check_data = first(check_loader)
     fixed_image = check_data["fixed_image"][0][0].permute(1, 0, 2)
@@ -159,9 +230,8 @@ def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
         print(f"fixed_label shape: {fixed_label.shape}, "
             f"moving_label shape: {moving_label.shape}")
 
-    # Plot the slice [:, :, slice]
+    # Plot the slice for each image
     slice = moving_image.shape[2]//2
-    select_backend(save_path)
     plt.figure("check", (12, 6))
     plt.subplot(1, 4, 1)
     plt.title("moving_image")
@@ -182,8 +252,23 @@ def check_dataset(train_files, train_transforms, verbose=True, save_path=None):
 
 def visualize_inference(moving_image, fixed_image, pred_image, moving_label=None, \
     fixed_label=None, pred_label=None, n=10, save_path=None):
-    # Visualize n equally spaced slices
+    """
+    Plots inputs and predicted registration images.
+
+    Parameters:
+        moving_image (numpy.ndarray): Moving image.
+        fixed_image (numpy.ndarray): Fixed image.
+        pred_image (numpy.ndarray): Predicted/warped image.
+        moving_label (numpy.ndarray): Moving label (optional).
+        fixed_label (numpy.ndarray): Fixed label (optional).
+        pred_label (numpy.ndarray): Predicted/warped label (optional).
+        n (int): Number of slices to visualize.
+        save_path (str, None): Figure save path.
+    """
+    # Select the plotting backend
     select_backend(save_path)
+
+    # Visualize n equally spaced slices
     for depth in range(n):
         depth = depth * (moving_image.shape[2] // n)
         plt.figure(depth, (18, 6))
@@ -230,6 +315,16 @@ def visualize_inference(moving_image, fixed_image, pred_image, moving_label=None
 
 
 def visualize_binary_3d(arr, save_path=None):
+    """
+    Visualize a binary 3D image in 3 dimensions.
+
+    Parameters:
+        arr (numpy.ndarray): A binary 3D image.
+        save_path (str, None): Figure save path.
+    """
+    # Select the plotting backend
+    select_backend(save_path)
+
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from skimage import measure
     # Use marching cubes to obtain the surface mesh
@@ -247,32 +342,4 @@ def visualize_binary_3d(arr, save_path=None):
     plt.tight_layout()
     
     # Show if no save path provided, otherwise save
-    if save_path is None:
-        show_or_save(save_path)
-    else:
-        show_or_save(save_path)
-
-
-def main():
-    from dataloader import load_file
-    atlas = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/MNI152_T1_0.7mm_brain.nii.gz")
-    #img = load_file("D:/CourseWork/CSC494/MONAIRegistration/data/100408_T1w_restore_brain_affine.nii.gz")
-    
-    from preprocessing import rotate
-    atlas = rotate(atlas, 3)
-    
-    plot_slice(atlas, slice=130, title="atlas d=50")
-    #plot_slices(atlas)
-    #
-    
-    #atlas = atlas[:260, 25:311-26, :260]
-    #img = img[:260, 25:311-26, :260]
-    
-    #img = rotate(img, 1)
-    
-    #print(img.shape)
-    
-    #plot_slice_overlay(atlas, img)
-
-if __name__ == "__main__":
-    main()
+    show_or_save(save_path)

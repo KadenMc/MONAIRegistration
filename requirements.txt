@@ -1,0 +1,23 @@
+# Used in many files
+numpy==1.19.5
+matplotlib==3.2.1
+torch==1.8.0+cu111
+monai==0.7.0
+
+# affine.py, preprocessing.py
+scipy==1.4.1
+
+# dataloader.py
+nibabel==3.2.1
+
+# affine.py
+dipy==1.4.1
+
+# create_labels.py
+fill-voids==2.0.2
+
+# resampling.py
+simpleitk==2.1.1
+
+# visualize.py
+neurite==0.1

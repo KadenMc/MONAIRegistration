@@ -14,13 +14,26 @@ def parse_arguments():
     parser.add_argument('save_path', type=ap.save_path, help='Path to save data file or folder')
     parser.add_argument('-t', '--thresh', type=float, help='Binarize threshold. Defaults to individual data mean')
     parser.add_argument("--fill", action="store_true", help="If flagged, fill gaps in the volumetric data")
-    parser.add_argument("--check", action="store_true", help="If flagged, visualizes images and generated labels")
+    parser.add_argument("--visualize", action="store_true", help="If flagged, visualizes images and generated labels")
     args = parser.parse_args()
     return args
 
 
 def binarize(arr, args):
-    if args.check:
+    """
+    Threshold a 3D image to create a binarized region of interest label.
+
+    Parameters:
+        arr (numpy.ndarray): 3D image.
+        args (argparse.Namespace):
+            <thresh> (float): Binarize threshold.
+            <fill> (bool): Whether to fill enclosed gaps in the volume.
+            <visualize> (bool): Whether to visualize the image and label.
+    
+    Returns:
+        (numpy.ndarray): Binarized region of interest label.
+    """
+    if args.visualize:
         from visualize import visualize_3d
         visualize_3d(arr)
         print("Mean:", arr.mean())
@@ -33,7 +46,7 @@ def binarize(arr, args):
         import fill_voids
         arr = fill_voids.fill(arr, in_place=True)
         
-    if args.check:
+    if args.visualize:
         from visualize import visualize_3d, visualize_binary_3d
         visualize_3d(arr)
         visualize_binary_3d(arr)

@@ -34,59 +34,6 @@ def parse_arguments():
     return args
 
 
-def affine_transform(arr, theta=0, trans=[0, 0, 0], scale=[1, 1, 1], \
-    output_shape=None):
-    """
-    Performs an affine transformation on a 3D image given rotation, translation, and scaling.
-
-    Parameters:
-        arr (numpy.ndarray): 3D image.
-        theta (float): Rotation in radians.
-        trans (list<float>): Translation in each axis.
-        scale (list<float>): Scaling in each axis.
-        output_shape (tuple<int>): Output image shape.
-    
-    Returns:
-        transformed (numpy.ndarray): The transformed image.
-    """
-    
-    # Compose the corresponding affine transformation matrix
-    rot_matrix = np.array([
-        [np.cos(theta), -np.sin(theta), 0, 0],
-        [np.sin(theta), np.cos(theta), 0, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
-    ])
-    
-    trans_matrix = np.array([
-        [1, 0, 0, trans[0]],
-        [0, 1, 0, trans[1]],
-        [0, 0, 1, trans[2]],
-        [0, 0, 0, 1]
-    ])
-    
-    scale_matrix = np.array([
-        [scale[0], 0, 0, 0],
-        [0, scale[1], 0, 0],
-        [0, 0, scale[2], 0],
-        [0, 0, 0, 1]
-    ])
-    
-    matrix = np.matmul(scale_matrix, trans_matrix)
-    matrix = np.matmul(matrix, rot_matrix)
-    
-    # Transform the image
-    if output_shape is None:
-        output_shape = arr.shape
-    else:
-        assert len(output_shape) == 3
-    
-    from scipy.ndimage import affine_transform
-    transformed = affine_transform(arr, matrix, output_shape=output_shape)
-    
-    return transformed
-
-
 def align_com(moving, static):
     """
     Align the center of mass of a moving image to that of a static image.
@@ -94,13 +41,16 @@ def align_com(moving, static):
     Parameters:
         moving (numpy.ndarray): 3D moving image.
         static (numpy.ndarray): 3D static image.
+    
+    Returns:
+        (numpy.ndarray): The center of mass aligned moving image.
     """
     from scipy.ndimage.measurements import center_of_mass
     moving_com = center_of_mass(moving)
     static_com = center_of_mass(static)
     delta = np.subtract(static_com, moving_com).astype(np.int64)
     moving = np.roll(np.roll(np.roll(moving, delta[0], axis=0), delta[1], axis=1), delta[2], axis=2)
-    return moving, static
+    return moving
 
 
 def register_affine(moving, args):
@@ -109,9 +59,12 @@ def register_affine(moving, args):
 
     Parameters:
         moving (numpy.ndarray): 3D moving image.
-        args (dict):
+        args (argparse.Namespace):
             <fixed> (numpy.ndarray): 3D fixed image.
             <visualize> (bool): Whether to visualize the input and transformed image.
+    
+    Returns:
+        (numpy.ndarray): The affinely aligned moving image.
     """
     assert args.fixed.shape == moving.shape
 
@@ -119,7 +72,8 @@ def register_affine(moving, args):
         vis.plot_slice_overlay(moving, args.fixed)
 
     # Begin with a simple center of mass alignment
-    moving, static = align_com(moving, args.fixed)
+    moving = align_com(moving, args.fixed)
+    static = args.fixed
 
     # Perform affine registration
     affreg = AffineRegistration()
