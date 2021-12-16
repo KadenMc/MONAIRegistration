@@ -26,7 +26,7 @@ def parse_arguments():
     
     # Training & data loading arguments
     parser.add_argument("--resize_ratio", type=float, help="Ratio to which the data is resized, e.g., 0.5 with shape (100, 150, 50) -> (50, 75, 25)")
-    parser.add_argument("--resize_shape", type=ap.delimited_ints, help="Shape to which the data is resized. May not be exactly this shape, but very similar")
+    parser.add_argument("--resize_shape", type=ap.delimited_ints, help="Shape to which the data is resized (a string of comma-delimited integers). May not be exactly this shape, but very similar")
     parser.add_argument("--cache_rate", type=ap.percent, default=1, help="Percentage of training data to load/cache at once - takes min of cache_rate and cache_num")
     parser.add_argument("--cache_num", type=int, default=sys.maxsize, help="Number of training samples to load/cache at once - takes min of cache_rate and cache_num")
     parser.add_argument("--verbose", action="store_true", help="If flagged, the program will convey more information through stdout")

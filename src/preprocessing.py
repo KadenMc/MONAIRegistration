@@ -10,8 +10,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Path argument
-    parser.add_argument('data', type=ap.file_or_dir_path, help='Path to data file or folder')
-    parser.add_argument('-s', '--save_path', type=ap.save_file_or_dir_path, help='Path to save data file or folder')
+    parser.add_argument('data', type=ap.path, help='Path to data file or folder')
+    parser.add_argument('-s', '--save_path', type=ap.save_path, help='Path to save data file or folder')
     parser.add_argument('--slices', action='store_true', \
         help="If flagged, data_path is expected to be a directory of image slices")
     parser.add_argument('--slices_dir', action='store_true', \
@@ -29,9 +29,9 @@ def parse_arguments():
 
     # Preprocessing arguments
     parser.add_argument("--resample_shape", type=ap.delimited_ints, default=None, \
-        help="Resample to shape, e.g., '(256, 256, 256)'")
+        help="Resample to shape (a string of comma-delimited integers), e.g., '(256, 256, 256)'")
     parser.add_argument("--resample_scales", type=ap.delimited_floats, default=None, \
-        help="Resample by axis scale, e.g., '(1.2, 0.9, 1)'")
+        help="Resample by axis scale (a string of comma-delimited floats), e.g., '(1.2, 0.9, 1)'")
     parser.add_argument("--normalize", action='store_true', \
         help="If flagged, min-max normalize the data")
     #slices: False

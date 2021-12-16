@@ -10,15 +10,15 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('moving', type=ap.file_or_dir_path, help='Path to moving image file or directory')
+    parser.add_argument('moving', type=ap.path, help='Path to moving image file or directory')
     parser.add_argument('fixed', type=ap.file_path, help='Path to atlas file')
-    parser.add_argument('--moving_labels', type=ap.file_or_dir_path, help='Path to corresponding label file or directory. \
+    parser.add_argument('--moving_labels', type=ap.path, help='Path to corresponding label file or directory. \
         Not required for inference.')
     parser.add_argument('--fixed_label', type=ap.file_path, help='Path to fixed labels file. Not required for inference.')
     parser.add_argument('weights_file', type=ap.file_path, help='Load model weights from file')
     parser.add_argument('--save_path', type=ap.dir_path, help='Directory path to save inferred images, DDFs, and labels')
     parser.add_argument("--resize_ratio", type=float, help="Ratio to which the data is resized, e.g., 0.5 with shape (100, 150, 50) -> (50, 75, 25)")
-    parser.add_argument("--resize_shape", type=ap.delimited_ints, help="Shape to which the data is resized. May not be exactly this shape, but very similar")
+    parser.add_argument("--resize_shape", type=ap.delimited_ints, help="Shape to which the data is resized (a string of comma-delimited integers). May not be exactly this shape, but very similar")
     
     args = parser.parse_args()
     return args

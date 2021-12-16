@@ -10,8 +10,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Path argument
-    parser.add_argument('data', type=ap.file_or_dir_path, help='Path to data file or folder')
-    parser.add_argument('save_path', type=ap.save_file_or_dir_path, help='Path to save data file or folder')
+    parser.add_argument('data', type=ap.path, help='Path to data file or folder')
+    parser.add_argument('save_path', type=ap.save_path, help='Path to save data file or folder')
     parser.add_argument('-t', '--thresh', type=float, help='Binarize threshold. Defaults to individual data mean')
     parser.add_argument("--fill", action="store_true", help="If flagged, fill gaps in the volumetric data")
     parser.add_argument("--check", action="store_true", help="If flagged, visualizes images and generated labels")
