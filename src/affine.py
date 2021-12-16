@@ -110,7 +110,7 @@ def register_affine(moving, args):
     Parameters:
         moving (numpy.ndarray): 3D moving image.
         args (dict):
-            <fixed> (np.ndarray): 3D fixed image.
+            <fixed> (numpy.ndarray): 3D fixed image.
             <visualize> (bool): Whether to visualize the input and transformed image.
     """
     assert args.fixed.shape == moving.shape

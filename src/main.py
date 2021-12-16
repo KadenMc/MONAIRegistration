@@ -54,7 +54,8 @@ def main():
     print_config()
 
     # Format data
-    data_dicts = dl.format_data(args.moving, args.fixed, args.labels, args.fixed_label)
+    data_dicts = dl.format_data(args.moving, args.fixed, \
+        moving_labels=args.moving_labels, fixed_label=args.fixed_label)
     
     # Split into training, validation, and testing
     train_files, val_files, test_files = dl.split_dataset(data_dicts, \
@@ -69,7 +70,7 @@ def main():
         set_determinism(seed=0)
 
     # Create dataloaders
-    train_loader, val_loader = dl.create_dataloaders(args, train_files, val_files, \
+    train_loader, val_loader = dl.create_train_dataloaders(args, train_files, val_files, \
         visualize=True, visualize_path=ap.join(ap.VISUALIZE_PATH, "data.png"))
     
     # Get device

@@ -293,13 +293,13 @@ class Model:
                 
                 # Save the files
                 if save_path is not None:
-                    from dataloader import check_extensions, save_nii_file
+                    from dataloader import get_recognized_extension, save_nii_file
                     from numpy import float64
                     
                     # Extract filename information
                     filename = os.path.basename(os.path.normpath( \
                         data['moving_image_meta_dict']['filename_or_obj'][0]))
-                    ext = check_extensions(filename)
+                    ext = get_recognized_extension(filename)
                     
                     # Save files predicted image, deformation field, and label
                     save_nii_file(join(save_path, filename[:-len(ext)] + '_ddf.nii.gz'), \

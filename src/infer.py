@@ -29,7 +29,8 @@ def main():
     args = parse_arguments()
     
     # Format data
-    data_dicts = dl.format_data(args.moving, args.fixed, args.moving_labels, args.fixed_label)
+    data_dicts = dl.format_data(args.moving, args.fixed, \
+        moving_labels=args.moving_labels, fixed_label=args.fixed_label)
     
     # Define data loader
     loader = dl.create_dataloader_infer(data_dicts, args.fixed, resize_shape=args.resize_shape, \

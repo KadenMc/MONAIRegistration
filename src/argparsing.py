@@ -8,8 +8,11 @@ def join(a, b):
     os.path.join may cause problems with filepaths (especially on Windows).
 
     Parameters:
-        a (str): Start of file path
-        b (str): End of file path
+        a (str): Start of file path.
+        b (str): End of file path.
+    
+    Returns:
+        (str): The joined path of a and b.
     """
     return os.path.join(a, b).replace("\\", "/")
 
@@ -31,6 +34,9 @@ def path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated path.
     """
     if os.path.isdir(path) or os.path.isfile(path):
         return path
@@ -44,6 +50,9 @@ def file_path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated file path.
     """
     if os.path.isfile(path):
         return path
@@ -57,6 +66,9 @@ def dir_path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated directory path.
     """
     if os.path.isdir(path):
         return path
@@ -71,6 +83,9 @@ def save_path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated save path.
     """
     if os.path.isdir(os.path.dirname(path)):
         return path
@@ -85,6 +100,9 @@ def save_file_path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated file save path.
     """
     return save_path(path)
 
@@ -96,6 +114,9 @@ def save_image_path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated image save path.
     """
     if path[-4:] in ['.png', '.jpg']:
         return save_file_path(path)
@@ -110,6 +131,9 @@ def save_dir_path(path):
 
     Parameters:
         path (str): Path.
+    
+    Returns:
+        (str): Validated directory save path.
     """
     if os.path.isdir(path):
         return path
@@ -123,8 +147,11 @@ def delimited_num(s, num_type):
     A base function off which to create comma-delimited number argparsing types.
 
     Parameters:
-        s (str): Delimited numbers in string format, e.g., '(10, 15, 9)'
-        num_type (class): A class to convert individual numbers, e.g., int or float
+        s (str): Delimited numbers in string format, e.g., '(10, 15, 9)'.
+        num_type (class): A class to convert individual numbers, e.g., int or float.
+    
+    Returns:
+        (list<num_type>): A list with values of type num_type.
     """
     if not isinstance(s, str):
         raise ArgumentTypeError("{} must be a string".format(s))
@@ -153,6 +180,9 @@ def delimited_ints(s):
 
     Parameters:
         s (str): Delimited integers in string format, e.g., '(10, -15, 9)'.
+    
+    Returns:
+        (list<float>): A list of integers.
     """
     return delimited_num(s, int)
 
@@ -164,6 +194,9 @@ def delimited_floats(s):
 
     Parameters:
         s (str): Delimited floats in string format, e.g., '(10.5, -15.9, -9)'.
+
+    Returns:
+        (list<float>): A list of floats.
     """
     return delimited_num(s, float)
 
@@ -176,6 +209,9 @@ def percent(p):
 
     Parameters:
         p (str): Percentage string.
+
+    Returns:
+        (float): A decimal percentage.
     """
     try:
         p = float(p)
