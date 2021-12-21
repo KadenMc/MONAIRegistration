@@ -3,7 +3,7 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam
 from monai.losses import BendingEnergyLoss, MultiScaleLoss, DiceLoss
-from monai.metrics import DiceMetric
+from monai.metrics import DiceMetric, HausdorffDistanceMetric, MSEMetric
 from monai.networks.blocks import Warp
 from monai.networks.nets import LocalNet
 
@@ -81,13 +81,23 @@ class Model:
             extract_levels=[0, 1, 2, 3],
             out_activation=None,
             out_kernel_initializer="zeros").to(device)
+
+        # Deformation
         self.warp_layer = Warp().to(device)
+        
+        # Losses
         self.image_loss = MSELoss()
         self.label_loss = DiceLoss()
         self.label_loss = MultiScaleLoss(self.label_loss, scales=[0, 1, 2, 4, 8, 16])
         self.regularization = BendingEnergyLoss()
+
+        # Optimization
         self.optimizer = Adam(self.model.parameters(), lr)
+
+        # Metrics
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
+        self.hausdorff_metric = HausdorffDistanceMetric()
+        self.mse_metric = MSEMetric()
     
     def load_weights(self, file):
         """
@@ -171,21 +181,22 @@ class Model:
         
         Returns:
             epoch_loss_values (list<float>): Average batch loss over each epoch.
-            metric_values (list<float>): Average batch metric over each epoch.
+            metrics (dict of str: list<float>): Average batch metrics every
+                val_interval epochs.
         """
-        best_metric = -1
-        best_metric_epoch = -1
+        # Define metric & tracking variables
+        best_dice = -1
+        best_dice_epoch = -1
         epoch_loss_values = []
-        metric_values = []
+        dice_metric_values = []
+        hausdorff_metric_values = []
+        mse_metric_values = []
 
-        max_epochs
-        val_interval
-        save_weights_file
-
-
+        # Training loop
         for epoch in range(max_epochs):
+
             # Perform validation
-            if (epoch + 1) % val_interval == 0 or epoch == 0:
+            if epoch % val_interval == 0:
                 self.model.eval()
                 with torch.no_grad():
                     for val_data in val_loader:
@@ -194,28 +205,44 @@ class Model:
                         # Send to device
                         val_fixed_image = val_data["fixed_image"].to(device)
                         val_fixed_label = val_data["fixed_label"].to(device)
-                        self.dice_metric(y_pred=val_pred_label, y=val_fixed_label)
 
-                    metric = self.dice_metric.aggregate().item()
+                        # Get metrics
+                        self.dice_metric(y_pred=val_pred_label, y=val_fixed_label)
+                        self.hausdorff_metric(y_pred=val_pred_label, y=val_fixed_label)
+                        self.mse_metric(y_pred=val_pred_label, y=val_fixed_label)
+
+                    # Record and reset validation metrics
+                    dice = self.dice_metric.aggregate().item()
                     self.dice_metric.reset()
-                    metric_values.append(metric)
-                    if metric > best_metric:
-                        best_metric = metric
-                        best_metric_epoch = epoch + 1
+                    dice_metric_values.append(dice)
+
+                    hausdorff = self.hausdorff_metric.aggregate().item()
+                    self.hausdorff_metric.reset()
+                    hausdorff_metric_values.append(hausdorff)
+
+                    mse = self.mse_metric.aggregate().item()
+                    self.mse_metric.reset()
+                    mse_metric_values.append(mse)
+
+                    if dice > best_dice:
+                        best_dice = dice
+                        best_dice_epoch = epoch
 
                         if save_weights_file is not None:
                             torch.save(self.model.state_dict(), save_weights_file)
                             print("Saved new best metric model")
                     print(
-                        f"Current epoch: {epoch + 1} "
-                        f"Current mean dice: {metric:.4f}\n"
-                        f"Best mean dice: {best_metric:.4f} "
+                        f"Current epoch: {epoch} "
+                        f"Current mean dice: {dice:.4f}\n"
+                        f"Current mean hausdorff: {hausdorff:.4f}\n"
+                        f"Current mean mse: {mse:.4f}\n"
+                        f"Best mean dice: {best_dice:.4f} "
                         f"at epoch: {best_metric_epoch}"
                     )
             
             # Perform training
             print("-" * 10)
-            print(f"Epoch {epoch + 1}/{max_epochs}")
+            print(f"Epoch {epoch}/{max_epochs}")
             self.model.train()
             epoch_loss = 0
             step = 0
@@ -237,14 +264,20 @@ class Model:
 
             epoch_loss /= step
             epoch_loss_values.append(epoch_loss)
-            print(f"Epoch {epoch + 1} average loss: {epoch_loss:.4f}")
+            print(f"Epoch {epoch} average loss: {epoch_loss:.4f}")
 
         # Give end of epoch information
         print(f"Train completed, "
             f"Best_metric: {best_metric:.4f}  "
             f"at epoch: {best_metric_epoch}")
 
-        return epoch_loss_values, metric_values
+        # Prepare metric dictionary
+        metrics = dict()
+        metrics['dice'] = dice_metric_values
+        metrics['hausdorff'] = hausdorff_metric_values
+        metrics['mse'] = mse_metric_values
+
+        return epoch_loss_values, metrics
     
 
     def infer(self, loader, device, save_path=None, visualize=True, \

@@ -49,7 +49,7 @@ def visualize_3d(vols, save_path=None):
    
 def visualize_deformation(ddf, save_path=None):
     """
-    Visualize the deformation field.
+    Visualize a deformation field.
 
     Parameters:
         ddf (numpy.ndarray): A dense deformation field.
@@ -63,6 +63,7 @@ def visualize_deformation(ddf, save_path=None):
         all_range = [rng_func(i_len) for i_len in new_shape]
         return tuple([x_arr.swapaxes(0, 1) for x_arr in np.meshgrid(*all_range)])
     
+    # Create deformation field visualization
     flow = ddf[1].squeeze()
     DS_FACTOR = 16
     c_xx, c_yy, c_zz = [x.flatten() for x in \
@@ -72,39 +73,47 @@ def visualize_deformation(ddf, save_path=None):
     ax = fig.gca(projection='3d')
     ax.quiver(c_xx, c_yy, c_zz, get_flow(0), get_flow(1), get_flow(2), \
         length=0.9, normalize=True)
+    
+    # Show if no save path provided, otherwise save
     show_or_save(save_path)
 
 
-def plot_history(epoch_loss_values, metric_values, save_path=None, val_interval=1):
+def plot_history(epoch_loss_values, metrics, save_path=None, val_interval=1):
     """
     Plot training history.
 
     Parameters:
         epoch_loss_values (list<float>): Average batch loss over each epoch.
-        metric_values (list<float>): Average batch metric over each epoch.
+        metrics (dict of str: list<float>): Average batch metrics every
+            val_interval epochs.
         save_path (str, None): Figure save path.
         val_interval (int): Plot validation point every 'val_interval' epochs.
     """
     # Select the plotting backend
     select_backend(save_path)
 
-    plt.figure("train", (12, 6))
+    num_plots = 1 + len(metrics.keys())
+
+    plt.figure("Training", (6*num_plots, 6))
     plt.subplot(1, 2, 1)
     
     # Plot loss
     plt.title("Epoch Average Loss")
-    x = [i + 1 for i in range(len(epoch_loss_values))]
+    x = np.arange(len(epoch_loss_values)) + 1
     y = epoch_loss_values
     plt.xlabel("epoch")
     plt.plot(x, y)
 
     # Plot metrics
-    plt.subplot(1, 2, 2)
-    plt.title("Val Mean Dice")
-    x = [args.val_interval * (i + 1) for i in range(len(metric_values))]
-    y = metric_values
-    plt.xlabel("epoch")
-    plt.plot(x, y)
+    for i, m in enumerate(metrics):
+        plt.subplot(1, 2, i + 2)
+        plt.title("Val Mean {}".format(m.capitalize()))
+        x = [args.val_interval*i for i in range(len(metric_values))]
+        y = metrics[m]
+        plt.xlabel("epoch")
+        plt.plot(x, y)
+    
+    # Show if no save path provided, otherwise save
     show_or_save(save_path)
 
 
