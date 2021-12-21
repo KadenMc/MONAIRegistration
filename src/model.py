@@ -266,8 +266,8 @@ class Model:
 
         # Give end of epoch information
         print(f"Train completed, "
-            f"Best_metric: {best_metric:.4f}  "
-            f"at epoch: {best_metric_epoch}")
+            f"Best_metric: {best_dice:.4f}  "
+            f"at epoch: {best_dice_epoch}")
 
         # Prepare metric dictionary
         metrics = dict()
