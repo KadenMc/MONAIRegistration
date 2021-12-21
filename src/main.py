@@ -84,7 +84,7 @@ def main():
         model.load_weights(args.weights_file)
 
     # Train model
-    losses, metrics = model.train(args, train_loader, val_loader, device, \
+    losses, metrics = model.train(train_loader, val_loader, device, \
         args.max_epochs, save_weights_file=args.save_weights_file, \
         val_interval=args.val_interval)
 
