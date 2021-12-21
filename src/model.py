@@ -128,8 +128,6 @@ class Model:
         # Predict DDF through LocalNet
         ddf = self.model(torch.cat((moving_image, fixed_image), dim=1))
 
-        print(ddf.type())
-
         # Warp moving image and label with the predicted DDF
         pred_image = self.warp_layer(moving_image, ddf)
         pred_label = self.warp_layer(moving_label, ddf)
@@ -237,7 +235,7 @@ class Model:
                         f"Current mean hausdorff: {hausdorff:.4f}\n"
                         f"Current mean mse: {mse:.4f}\n"
                         f"Best mean dice: {best_dice:.4f} "
-                        f"at epoch: {best_metric_epoch}"
+                        f"at epoch: {best_dice_epoch}"
                     )
             
             # Perform training
