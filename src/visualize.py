@@ -98,19 +98,19 @@ def plot_history(epoch_loss_values, metrics, save_path=None, val_interval=1):
     #plt.subplot(1, 2, 1)
     
     # Plot loss
-    ax[0].title("Epoch Average Loss")
+    ax[0].set_title("Epoch Average Loss")
     x = np.arange(len(epoch_loss_values)) + 1
     y = epoch_loss_values
-    ax[0].xlabel("epoch")
+    ax[0].set_xlabel("epoch")
     ax[0].plot(x, y)
 
     # Plot metrics
     for i, m in enumerate(metrics):
         ax[i + 1].subplot(1, 2, i + 2)
-        ax[i + 1].title("Val Mean {}".format(m.capitalize()))
+        ax[i + 1].set_title("Val Mean {}".format(m.capitalize()))
         x = [val_interval*i for i in range(len(metrics[m]))]
         y = metrics[m]
-        ax[i + 1].xlabel("epoch")
+        ax[i + 1].set_xlabel("epoch")
         ax[i + 1].plot(x, y)
     
     # Show if no save path provided, otherwise save
