@@ -106,7 +106,6 @@ def plot_history(epoch_loss_values, metrics, save_path=None, val_interval=1):
 
     # Plot metrics
     for i, m in enumerate(metrics):
-        ax[i + 1].subplot(1, 2, i + 2)
         ax[i + 1].set_title("Val Mean {}".format(m.capitalize()))
         x = [val_interval*i for i in range(len(metrics[m]))]
         y = metrics[m]
