@@ -151,7 +151,7 @@ class Model:
         Infers outputs from the input data, visualizing and saving the outputs accordingly.
     """
 
-    def __init__(self, device, lr=1e-5, lr_factor=0.5, lr_patience=5, es_patience=10):
+    def __init__(self, device, val_interval=1, lr=1e-5, lr_factor=0.5, lr_patience=5, es_patience=10):
         """
         Model initialization.
 
@@ -177,15 +177,17 @@ class Model:
         self.label_loss = MultiScaleLoss(self.label_loss, scales=[0, 1, 2, 4, 8, 16])
         self.regularization = BendingEnergyLoss()
 
+        self.val_interval = val_interval
+
         # Optimization
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr)
         
         # Learning rate scheduler
         self.lr_scheduler = LRScheduler(self.optimizer, factor=lr_factor, \
-            patience=lr_patience)
+            patience=lr_patience // val_interval)
         
         # Early stopping
-        self.early_stopping = EarlyStopping(patience=es_patience)
+        self.early_stopping = EarlyStopping(patience=es_patience // val_interval)
 
         # Metrics
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
@@ -348,6 +350,13 @@ class Model:
                         f"Best mean dice: {best_dice:.4f} "
                         f"at epoch: {best_dice_epoch}"
                     )
+
+                    # Update learning rate
+                    self.lr_scheduler(epoch_val_loss)
+                    
+                    # Check for early stopping
+                    if self.early_stopping(epoch_val_loss):
+                        break
             
             # Perform training
             print("-" * 10)
@@ -374,13 +383,6 @@ class Model:
             epoch_loss /= step
             losses.append(epoch_loss)
             print(f"Epoch {epoch} average loss: {epoch_loss:.4f}")
-            
-            # Update learning rate
-            self.lr_scheduler(epoch_val_loss)
-            
-            # Check for early stopping
-            if self.early_stopping(epoch_val_loss):
-                break
 
         # Give end of training information
         print(f"Train completed, "

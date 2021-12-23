@@ -81,8 +81,9 @@ def main():
     device = m.get_device()
 
     # Define model
-    model = m.Model(device, lr=args.lr, lr_factor=args.lr_factor, \
-        lr_patience=args.lr_patience, es_patience=args.es_patience)
+    model = m.Model(device, val_interval=args.val_interval, lr=args.lr, \
+        lr_factor=args.lr_factor, lr_patience=args.lr_patience, \
+        es_patience=args.es_patience)
 
     # If args.weights is specified, load the weights from file
     if args.weights_file is not None:
@@ -90,8 +91,7 @@ def main():
 
     # Train model
     losses, metrics = model.train(train_loader, val_loader, device, \
-        args.max_epochs, save_weights_file=args.save_weights_file, \
-        val_interval=args.val_interval)
+        args.max_epochs, save_weights_file=args.save_weights_file)
 
     # Plot history
     vis.plot_history(losses, metrics, save_path=ap.join(ap.VISUALIZE_PATH, \
