@@ -151,7 +151,7 @@ class Model:
         Infers outputs from the input data, visualizing and saving the outputs accordingly.
     """
 
-    def __init__(self, device, lr=0):
+    def __init__(self, device, lr=0, lr_factor, lr_patience, es_patience):
         """
         Model initialization.
 
@@ -181,11 +181,11 @@ class Model:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr)
         
         # Learning rate scheduler
-        self.lr_scheduler = LRScheduler(self.optimizer, factor=args['lr_factor'], \
-            patience=args['lr_patience'])
+        self.lr_scheduler = LRScheduler(self.optimizer, factor=lr_factor, \
+            patience=lr_patience)
         
         # Early stopping
-        self.early_stopping = EarlyStopping()
+        self.early_stopping = EarlyStopping(patience=es_patience)
 
         # Metrics
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)

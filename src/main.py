@@ -73,14 +73,16 @@ def main():
         set_determinism(seed=0)
 
     # Create dataloaders
-    train_loader, val_loader = dl.create_train_dataloaders(args, train_files, val_files, \
-        visualize=True, visualize_path=ap.join(ap.VISUALIZE_PATH, "data.png"))
+    train_loader, val_loader = dl.create_train_dataloaders(args, train_files, \
+        val_files, visualize=True, \
+        visualize_path=ap.join(ap.VISUALIZE_PATH, "data.png"))
     
     # Get device
     device = m.get_device()
 
     # Define model
-    model = m.Model(device, lr=args.lr)
+    model = m.Model(device, lr=args.lr, args.lr_factor, args.lr_patience, \
+        args.es_patience)
 
     # If args.weights is specified, load the weights from file
     if args.weights_file is not None:
