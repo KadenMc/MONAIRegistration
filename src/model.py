@@ -144,7 +144,7 @@ class Model:
     forward_val(batch_data, device):
         Sends input data into the model and returns the output. Labels may be provided optionally.
     
-    train(train_loader, val_loader, device, max_epochs, save_weights_file=None, val_interval=1):
+    train(train_loader, val_loader, device, max_epochs, save_weights_file=None):
         Trains the model and may perform validation at the end of each epoch.
     
     infer(loader, device, save_path=None, visualize=True, visualize_n=10, visualize_save_path=None):
@@ -157,7 +157,11 @@ class Model:
 
         Parameters:
             device (torch.device): Device on which to train.
+            val_interval (int): Perform validation every 'val_interval' epochs.
             lr (float): Learning rate.
+            lr_factor (float): Learning rate percentage decrease factor.
+            lr_patience (int): Number of epochs between checking to decrease learning rate.
+            es_patience (int): Number of epochs between early stopping checks.
         """
         self.model = LocalNet(
             spatial_dims=3,
@@ -263,7 +267,7 @@ class Model:
     
     
     def train(self, train_loader, val_loader, device, max_epochs, \
-        save_weights_file=None, val_interval=1):
+        save_weights_file=None):
         """
         Trains the model and may perform validation at the end of each epoch.
 
@@ -273,12 +277,11 @@ class Model:
             device (torch.device): Device on which to train.
             max_epochs (int): Maximum number of epochs.
             save_weights_file (str): File to save the model weights.
-            val_interval (int): Perform validation every 'val_interval' epochs.
         
         Returns:
             losses (list<float>): Average loss over each epoch.
             metrics (dict of str: list<float>): Average metrics every
-                val_interval epochs.
+                self.val_interval epochs.
         """
         # Define metric & tracking variables
         best_dice = -1
@@ -293,7 +296,7 @@ class Model:
         for epoch in range(max_epochs):
 
             # Perform validation
-            if epoch % val_interval == 0:
+            if epoch % self.val_interval == 0:
                 self.model.eval()
                 with torch.no_grad():
                     epoch_val_loss = 0
