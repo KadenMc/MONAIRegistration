@@ -274,14 +274,15 @@ class Model:
             val_interval (int): Perform validation every 'val_interval' epochs.
         
         Returns:
-            epoch_loss_values (list<float>): Average batch loss over each epoch.
-            metrics (dict of str: list<float>): Average batch metrics every
+            losses (list<float>): Average loss over each epoch.
+            metrics (dict of str: list<float>): Average metrics every
                 val_interval epochs.
         """
         # Define metric & tracking variables
         best_dice = -1
         best_dice_epoch = -1
-        epoch_loss_values = []
+        losses = []
+        val_losses = []
         dice_metric_values = []
         hausdorff_metric_values = []
         mse_metric_values = []
@@ -293,6 +294,8 @@ class Model:
             if epoch % val_interval == 0:
                 self.model.eval()
                 with torch.no_grad():
+                    epoch_val_loss = 0
+                    step = 0
                     for val_data in val_loader:
                         val_ddf, val_pred_image, val_pred_label = self.forward(val_data, device)
 
@@ -300,10 +303,21 @@ class Model:
                         val_fixed_image = val_data["fixed_image"].to(device)
                         val_fixed_label = val_data["fixed_label"].to(device)
 
+                        # Get loss
+                        val_loss = self.image_loss(val_pred_image, val_fixed_image) + 100 * \
+                            self.label_loss(val_pred_label, val_fixed_label) + 10 * self.regularization(val_ddf)
+
+                        epoch_val_loss += val_loss
+                        step += 1
+
                         # Get metrics
                         self.dice_metric(y_pred=val_pred_label, y=val_fixed_label)
                         self.hausdorff_metric(y_pred=val_pred_label, y=val_fixed_label)
                         self.mse_metric(y_pred=val_pred_label, y=val_fixed_label)
+
+                    epoch_val_loss /= step
+                    val_losses.append(epoch_val_loss)
+                    print(f"Epoch {epoch} average validation loss: {epoch_val_loss:.4f}")
 
                     # Record and reset validation metrics
                     dice = self.dice_metric.aggregate().item()
@@ -357,17 +371,17 @@ class Model:
                 epoch_loss += loss.item()
 
             epoch_loss /= step
-            epoch_loss_values.append(epoch_loss)
+            losses.append(epoch_loss)
             print(f"Epoch {epoch} average loss: {epoch_loss:.4f}")
             
             # Update learning rate
-            self.lr_scheduler(val_epoch_loss)
+            self.lr_scheduler(epoch_val_loss)
             
             # Check for early stopping
-            if self.early_stopping(val_epoch_loss):
+            if self.early_stopping(epoch_val_loss):
                 break
 
-        # Give end of epoch information
+        # Give end of training information
         print(f"Train completed, "
             f"Best_metric: {best_dice:.4f}  "
             f"at epoch: {best_dice_epoch}")
@@ -377,8 +391,9 @@ class Model:
         metrics['dice'] = dice_metric_values
         metrics['hausdorff'] = hausdorff_metric_values
         metrics['mse'] = mse_metric_values
+        metrics['val_losses'] = val_losses
 
-        return epoch_loss_values, metrics
+        return losses, metrics
     
 
     def infer(self, loader, device, save_path=None, visualize=True, \
