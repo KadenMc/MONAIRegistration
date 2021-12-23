@@ -151,7 +151,7 @@ class Model:
         Infers outputs from the input data, visualizing and saving the outputs accordingly.
     """
 
-    def __init__(self, device, lr=0, lr_factor, lr_patience, es_patience):
+    def __init__(self, device, lr=1e-5, lr_factor=0.5, lr_patience=5, es_patience=10):
         """
         Model initialization.
 

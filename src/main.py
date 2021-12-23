@@ -81,8 +81,8 @@ def main():
     device = m.get_device()
 
     # Define model
-    model = m.Model(device, lr=args.lr, args.lr_factor, args.lr_patience, \
-        args.es_patience)
+    model = m.Model(device, lr=args.lr, lr_factor=args.lr_factor, \
+        lr_patience=args.lr_patience, es_patience=args.es_patience)
 
     # If args.weights is specified, load the weights from file
     if args.weights_file is not None:
