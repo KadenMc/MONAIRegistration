@@ -92,7 +92,7 @@ class EarlyStopping():
         
         else:
             # If wanting the metric to decrease
-            if mode == "min":
+            if self.mode == "min":
                 if self.best_metric - metric >= self.min_delta:
                     # Reset counter if metric improves
                     self.best_metric = metric
@@ -104,7 +104,7 @@ class EarlyStopping():
                         return True
             
             # If wanting the metric to increase
-            elif mode == "max":
+            elif self.mode == "max":
                 if metric - self.best_metric >= self.min_delta:
                     # Reset counter if metric improves
                     self.best_metric = metric
