@@ -297,6 +297,8 @@ class Model:
                     epoch_val_loss = 0
                     step = 0
                     for val_data in val_loader:
+                        step += 1
+                        
                         val_ddf, val_pred_image, val_pred_label = self.forward(val_data, device)
 
                         # Send to device
@@ -307,8 +309,7 @@ class Model:
                         val_loss = self.image_loss(val_pred_image, val_fixed_image) + 100 * \
                             self.label_loss(val_pred_label, val_fixed_label) + 10 * self.regularization(val_ddf)
 
-                        epoch_val_loss += val_loss
-                        step += 1
+                        epoch_val_loss += val_loss.item()
 
                         # Get metrics
                         self.dice_metric(y_pred=val_pred_label, y=val_fixed_label)
@@ -391,7 +392,7 @@ class Model:
         metrics['dice'] = dice_metric_values
         metrics['hausdorff'] = hausdorff_metric_values
         metrics['mse'] = mse_metric_values
-        metrics['val_losses'] = val_losses
+        metrics['val loss'] = val_losses
 
         return losses, metrics
     
