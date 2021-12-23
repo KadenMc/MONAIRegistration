@@ -1,7 +1,6 @@
 import os
 import torch
 from torch.nn import MSELoss
-from torch.optim import Adam
 from monai.losses import BendingEnergyLoss, MultiScaleLoss, DiceLoss
 from monai.metrics import DiceMetric, HausdorffDistanceMetric, MSEMetric
 from monai.networks.blocks import Warp
@@ -32,6 +31,93 @@ def get_device(verbose=True):
         
         return device
 
+
+class LRScheduler():
+    """
+    Learning rate scheduler. If a given metric does not increase/decrease for 
+    'patience' epochs, then decrease the learning rate by some 'factor'.
+    
+    new_lr = old_lr * factor
+    """
+    def __init__(self, optimizer, patience=10, min_lr=1e-6, factor=0.8, \
+        mode='min', verbose=True):
+        """
+        Parameters:
+            optimizer: The optimizer.
+            patience (int): Number of epochs to wait before updating lr.
+            min_lr (float): Minimum lr value.
+            factor (float): Percent decrease on each update.
+        """
+        self.optimizer = optimizer
+        self.patience = patience
+        self.min_lr = min_lr
+        self.factor = factor
+        self.mode = mode
+        self.lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau( \
+            self.optimizer, mode=self.mode, patience=self.patience, \
+            factor=self.factor, min_lr=self.min_lr, verbose=verbose)
+    
+    
+    def __call__(self, val_loss):
+        self.lr_scheduler.step(val_loss)
+
+
+class EarlyStopping():
+    """
+    Early stopping to stop the training when the loss does not improve after
+    certain epochs.
+    """
+    def __init__(self, patience=5, min_delta=0, mode="min"):
+        """
+        Parameters:
+            patience (int): Number of epochs to wait with no metric improvement
+                before early stopping.
+            min_delta (float): Minimum difference between old and new metric to
+                be considered as an improvement
+        """
+        assert mode == "min" or mode == "max"
+        
+        self.patience = patience
+        self.min_delta = min_delta
+        self.mode = mode
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+    
+    
+    def __call__(self, metric):
+        # If this is the first epoch
+        if self.best_metric == None:
+            self.best_metric = metric
+        
+        else:
+            # If wanting the metric to decrease
+            if mode == "min":
+                if self.best_metric - metric >= self.min_delta:
+                    # Reset counter if metric improves
+                    self.best_metric = metric
+                    self.counter = 0
+                else:
+                    self.counter += 1
+                    if self.counter >= self.patience:
+                        print('Stopping early...')
+                        return True
+            
+            # If wanting the metric to increase
+            elif mode == "max":
+                if metric - self.best_metric >= self.min_delta:
+                    # Reset counter if metric improves
+                    self.best_metric = metric
+                    self.counter = 0
+                else:
+                    self.counter += 1
+                    if self.counter >= self.patience:
+                        print('Stopping early.')
+                        return True
+        
+        return False
+
+
 class Model:
     """
     A class handling the model components and functionality.
@@ -53,7 +139,7 @@ class Model:
         Loads weights into the model from a weights file.
     
     forward(batch_data, device):
-        Sends input data into the model and returns the output.
+        Sends input data into the model and returns the output. Labels must be provided.
 
     forward_val(batch_data, device):
         Sends input data into the model and returns the output. Labels may be provided optionally.
@@ -82,7 +168,7 @@ class Model:
             out_activation=None,
             out_kernel_initializer="zeros").to(device)
 
-        # Deformation
+        # Deformation function/layer
         self.warp_layer = Warp().to(device)
         
         # Losses
@@ -92,12 +178,20 @@ class Model:
         self.regularization = BendingEnergyLoss()
 
         # Optimization
-        self.optimizer = Adam(self.model.parameters(), lr)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr)
+        
+        # Learning rate scheduler
+        self.lr_scheduler = LRScheduler(self.optimizer, factor=args['lr_factor'], \
+            patience=args['lr_patience'])
+        
+        # Early stopping
+        self.early_stopping = EarlyStopping()
 
         # Metrics
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
         self.hausdorff_metric = HausdorffDistanceMetric()
         self.mse_metric = MSEMetric()
+    
     
     def load_weights(self, file):
         """
@@ -107,6 +201,7 @@ class Model:
             file (str): File from which to load the weights.
         """
         self.model.load_state_dict(torch.load(file))
+    
     
     def forward(self, batch_data, device):
         """
@@ -133,6 +228,7 @@ class Model:
         pred_label = self.warp_layer(moving_label, ddf)
 
         return ddf, pred_image, pred_label
+    
     
     def forward_val(self, batch_data, device):
         """
@@ -263,6 +359,13 @@ class Model:
             epoch_loss /= step
             epoch_loss_values.append(epoch_loss)
             print(f"Epoch {epoch} average loss: {epoch_loss:.4f}")
+            
+            # Update learning rate
+            self.lr_scheduler(val_epoch_loss)
+            
+            # Check for early stopping
+            if self.early_stopping(val_epoch_loss):
+                break
 
         # Give end of epoch information
         print(f"Train completed, "
@@ -342,4 +445,3 @@ class Model:
                     if pred_label is not None:
                         save_nii_file(join(save_path, filename[:-len(ext)] + '_labels.nii.gz'), \
                             pred_label.astype(float64))
-        
