@@ -224,7 +224,7 @@ class Model:
         """
         fixed_image = batch_data["fixed_image"].to(device)
         moving_image = batch_data["moving_image"].to(device)
-        moving_label = batch_data["moving_label"].to(device).byte()
+        moving_label = batch_data["moving_label"].to(device)
 
         # Predict DDF through LocalNet
         ddf = self.model(torch.cat((moving_image, fixed_image), dim=1))
@@ -308,7 +308,7 @@ class Model:
 
                         # Send to device
                         val_fixed_image = val_data["fixed_image"].to(device)
-                        val_fixed_label = val_data["fixed_label"].to(device).byte()
+                        val_fixed_label = val_data["fixed_label"].to(device)
 
                         # Get loss
                         val_loss = self.image_loss(val_pred_image, val_fixed_image) + 100 * \
@@ -320,8 +320,8 @@ class Model:
                         self.mse_metric(y_pred=val_pred_image, y=val_fixed_image)
 
                         # Get label metrics
-                        self.dice_metric(y_pred=val_pred_label, y=val_fixed_label)
-                        self.hausdorff_metric(y_pred=val_pred_label, y=val_fixed_label)
+                        self.dice_metric(y_pred=val_pred_label.byte(), y=val_fixed_label.byte())
+                        self.hausdorff_metric(y_pred=val_pred_label.byte(), y=val_fixed_label.byte())
 
                     epoch_val_loss /= step
                     val_losses.append(epoch_val_loss)
