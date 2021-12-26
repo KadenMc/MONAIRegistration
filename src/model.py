@@ -231,7 +231,7 @@ class Model:
 
         # Warp moving image and label with the predicted DDF
         pred_image = self.warp_layer(moving_image, ddf)
-        pred_label = self.warp_layer(moving_label, ddf).byte()
+        pred_label = self.warp_layer(moving_label, ddf)
 
         return ddf, pred_image, pred_label
     
