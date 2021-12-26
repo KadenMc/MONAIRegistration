@@ -16,6 +16,7 @@ def parse_arguments():
     parser.add_argument('fixed', type=ap.file_path, help='Path to fixed image')
     parser.add_argument('--labels', type=ap.path, help='Path to image label or directory of image labels')
     parser.add_argument('--fixed_label', type=ap.file_path, help='Path to fixed label')
+    parser.add_argument("--cache_rate", type=ap.percent, default=1, help="Percentage of training data to load/cache at once.")
 
     args = parser.parse_args()
     return args
@@ -33,7 +34,7 @@ def main():
         moving_labels=args.labels, fixed_label=args.fixed_label)
 
     # Get dataloader
-    loader = create_dataloader_infer(data_dicts, args.fixed)
+    loader = create_dataloader_infer(data_dicts, args.fixed, cache_rate=args.cache_rate)
 
     # Define metrics
     hausdorff_metric = HausdorffDistanceMetric()

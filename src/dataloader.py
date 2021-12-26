@@ -559,7 +559,7 @@ def create_train_dataloaders(args, train_files, val_files, visualize=False, visu
     return train_loader, val_loader
 
 
-def create_dataloader_infer(files, fixed, resize_shape=None, resize_ratio=None):
+def create_dataloader_infer(files, fixed, resize_shape=None, resize_ratio=None, cache_rate=1.0):
     """
     Creates dataloader for inference.
 
@@ -578,7 +578,7 @@ def create_dataloader_infer(files, fixed, resize_shape=None, resize_ratio=None):
     transforms = create_transforms(fixed, keys=list(files[0].keys()), \
         augment_data=False, resize_shape=resize_shape, resize_ratio=resize_ratio)
     
-    ds = CacheDataset(data=files, transform=transforms, cache_rate=1.0)
+    ds = CacheDataset(data=files, transform=transforms, cache_rate=cache_rate)
     loader = DataLoader(ds, batch_size=1)
     return loader
 
