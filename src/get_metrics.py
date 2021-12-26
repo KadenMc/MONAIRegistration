@@ -61,7 +61,7 @@ def main():
     metrics["MSE"] = mse_metric.aggregate().item()
     
     try:
-        metrics["DICE"] = dice_metric.aggregate().item()
+        metrics["Dice"] = dice_metric.aggregate().item()
         metrics["Hausdorff"] = hausdorff_metric.aggregate().item()
     except TypeError:
         pass
