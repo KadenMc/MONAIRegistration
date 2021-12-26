@@ -365,7 +365,7 @@ class Model:
             
             # Perform training
             print("-" * 10)
-            print(f"Epoch {epoch}/{max_epochs}")
+            print(f"Epoch {epoch + 1}/{max_epochs}")
             self.model.train()
             epoch_loss = 0
             step = 0
@@ -387,7 +387,7 @@ class Model:
 
             epoch_loss /= step
             losses.append(epoch_loss)
-            print(f"Epoch {epoch} average loss: {epoch_loss:.4f}")
+            print(f"Epoch {epoch + 1} average loss: {epoch_loss:.4f}")
 
         # Give end of training information
         print(f"Train completed, "
