@@ -348,10 +348,10 @@ class Model:
                             torch.save(self.model.state_dict(), save_weights_file)
                             print("Saved new best metric model")
                     print(
-                        f"Current epoch: {epoch} "
-                        f"Current mean dice: {dice:.4f}\n"
-                        f"Current mean hausdorff: {hausdorff:.4f}\n"
-                        f"Current mean mse: {mse:.4f}\n"
+                        f"Epoch: {epoch} "
+                        f"Mean Dice: {dice:.4f}\n"
+                        f"Mean Hausdorff: {hausdorff:.4f}\n"
+                        f"Mean MSE: {mse:.4f}\n"
                         f"Best mean dice: {best_dice:.4f} "
                         f"at epoch: {best_dice_epoch}"
                     )
