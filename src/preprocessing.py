@@ -316,7 +316,8 @@ def preprocess_file(file, save_path=None, load_fn=dl.load_file, \
 
 
 def preprocess_dir(data, save_path=None, load_fn=dl.load_file, \
-    process_fn=preprocess, process_args=None, save_fn=dl.save_nii_file):
+    process_fn=preprocess, process_args=None, save_fn=dl.save_nii_file, \
+    return_imgs=False):
     """
     Preprocess a directory of images.
 
@@ -329,14 +330,25 @@ def preprocess_dir(data, save_path=None, load_fn=dl.load_file, \
         process_args (dict, argparse.Namespace): Arguments passed into the
             preprocessing function.
         save_fn (func): Function to save the data.
+        return_imgs (bool): Whether to return the images or simply save them.
+            Note: This requires the images be loaded all at once.
 
     Returns:
-        (numpy.ndarray): Preprocessed image.
+        (None, list<numpy.ndarray>): None if return_imgs is False, otherwise a
+            a list of preprocessed images.
     """
+    imgs = [] if return_imgs is False else None
     for f in os.listdir(data):
         save = None if save_path is None else ap.join(save_path, f)
-        preprocess_file(ap.join(data, f), save_path=save, load_fn=load_fn, process_fn=process_fn, \
-            process_args=process_args, save_fn=save_fn)
+        
+        if return_imgs is False:
+            preprocess_file(ap.join(data, f), save_path=save, load_fn=load_fn, \
+                process_fn=process_fn, process_args=process_args, save_fn=save_fn)
+        else:
+            imgs.append(preprocess_file(ap.join(data, f), save_path=save, load_fn=load_fn, \
+                process_fn=process_fn, process_args=process_args, save_fn=save_fn))
+    
+    return imgs
 
 
 def main():

@@ -16,7 +16,7 @@ def parse_arguments():
     # Paths
     parser.add_argument('moving', type=ap.dir_path, help='Path to directory of moving images')
     parser.add_argument('fixed', type=ap.file_path, help='Path to fixed image')
-    parser.add_argument('moving_labels', type=ap.dir_path, help='Path to directory of labels')
+    parser.add_argument('moving_labels', type=ap.dir_path, help='Path to directory of moving image labels')
     parser.add_argument('fixed_label', type=ap.file_path, help='Path to fixed label')
     parser.add_argument('--weights_file', type=ap.file_path, help='Load model weights from file')
     parser.add_argument('--save_weights_file', default=ap.join(ap.MODEL_PATH, 'model.pth'), \
@@ -104,7 +104,7 @@ def main():
         else:
             test_loader = create_dataloader_infer(test_files, args.fixed, \
                 resize_shape=args.resize_shape, resize_ratio=args.resize_ratio)
-            model.infer_val(test_loader, device, \
+            model.infer(test_loader, device, \
                 visualize_save_path=ap.join(ap.VISUALIZE_PATH, "infer.png"))
 
 

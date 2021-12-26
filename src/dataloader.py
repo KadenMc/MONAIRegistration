@@ -83,11 +83,12 @@ def format_data(moving, fixed, moving_labels=None, fixed_label=None):
 
         if moving_labels is not None:
             labels = sorted(os.listdir(moving_labels))
+            
+            # Assert the images and labels directories have the same files
+            assert len(images) == len(labels) and images == labels
+
         else:
             labels = None
-
-        # Assert the images and labels directories have the same files
-        assert len(images) == len(labels) and images == labels
 
         data_dicts = []
         for i, image in enumerate(images):
@@ -563,10 +564,10 @@ def create_dataloader_infer(files, fixed, resize_shape=None, resize_ratio=None):
     Creates dataloader for inference.
 
     Parameters:
+        files (list<dict>): List of formatted image dictionaries.
         fixed (numpy.ndarray): 3D fixed image file path.
         resize_shape (numpy.ndarray): Resize shape.
         resize_ratio (numpy.ndarray): Resize ratio.
-        files (list<dict>): List of formatted image dictionaries.
     
     Returns
         loader (monai.data.DataLoader): Inference dataloader.

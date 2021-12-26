@@ -195,7 +195,7 @@ class Model:
 
         # Metrics
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
-        self.hausdorff_metric = HausdorffDistanceMetric()
+        self.hausdorff_metric = HausdorffDistanceMetric(include_background=True, reduction="mean", get_not_nans=False)
         self.mse_metric = MSEMetric()
     
     
@@ -224,14 +224,14 @@ class Model:
         """
         fixed_image = batch_data["fixed_image"].to(device)
         moving_image = batch_data["moving_image"].to(device)
-        moving_label = batch_data["moving_label"].to(device)
+        moving_label = batch_data["moving_label"].to(device).byte()
 
         # Predict DDF through LocalNet
         ddf = self.model(torch.cat((moving_image, fixed_image), dim=1))
 
         # Warp moving image and label with the predicted DDF
         pred_image = self.warp_layer(moving_image, ddf)
-        pred_label = self.warp_layer(moving_label, ddf)
+        pred_label = self.warp_layer(moving_label, ddf).byte()
 
         return ddf, pred_image, pred_label
     
@@ -308,7 +308,7 @@ class Model:
 
                         # Send to device
                         val_fixed_image = val_data["fixed_image"].to(device)
-                        val_fixed_label = val_data["fixed_label"].to(device)
+                        val_fixed_label = val_data["fixed_label"].to(device).byte()
 
                         # Get loss
                         val_loss = self.image_loss(val_pred_image, val_fixed_image) + 100 * \
@@ -316,10 +316,12 @@ class Model:
 
                         epoch_val_loss += val_loss.item()
 
-                        # Get metrics
+                        # Get image metrics
+                        self.mse_metric(y_pred=val_pred_image, y=val_fixed_image)
+
+                        # Get label metrics
                         self.dice_metric(y_pred=val_pred_label, y=val_fixed_label)
                         self.hausdorff_metric(y_pred=val_pred_label, y=val_fixed_label)
-                        self.mse_metric(y_pred=val_pred_label, y=val_fixed_label)
 
                     epoch_val_loss /= step
                     val_losses.append(epoch_val_loss)
