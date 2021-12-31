@@ -3,6 +3,7 @@ import torch
 from torch.nn import MSELoss
 from monai.losses import BendingEnergyLoss, MultiScaleLoss, DiceLoss
 from monai.metrics import DiceMetric, HausdorffDistanceMetric, MSEMetric
+from monai.losses import LocalNormalizedCrossCorrelationLoss, GlobalMutualInformationLoss
 from monai.networks.blocks import Warp
 from monai.networks.nets import LocalNet
 
@@ -130,7 +131,11 @@ class Model:
     label_loss : Label (feature based) loss function
     regularization : Deformation loss function
     optimizer : Training optimizer
+    mse_metric : Mean squared error metric function
+    ncc_metric : Normalized cross correlation metric function
+    mi_metric = Mutua information metric function
     dice_metric : Dice metric function
+    hausdorff_metric : Hausdorff distance metric function
 
 
     Methods
@@ -194,9 +199,11 @@ class Model:
         self.early_stopping = EarlyStopping(patience=es_patience // val_interval)
 
         # Metrics
+        self.mse_metric = MSEMetric()
+        self.ncc_metric = LocalNormalizedCrossCorrelationLoss(spatial_dims=3)
+        self.mi_metric = GlobalMutualInformationLoss()
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
         self.hausdorff_metric = HausdorffDistanceMetric(include_background=True, reduction="mean", get_not_nans=False)
-        self.mse_metric = MSEMetric()
     
     
     def load_weights(self, file):
@@ -288,9 +295,12 @@ class Model:
         best_dice_epoch = -1
         losses = []
         val_losses = []
+
+        mse_metric_values = []
+        ncc_metric_values = []
+        mi_metric_values = []
         dice_metric_values = []
         hausdorff_metric_values = []
-        mse_metric_values = []
 
         # Training loop
         for epoch in range(max_epochs):
@@ -300,6 +310,8 @@ class Model:
                 self.model.eval()
                 with torch.no_grad():
                     epoch_val_loss = 0
+                    ncc = 0
+                    mi = 0
                     step = 0
                     for val_data in val_loader:
                         step += 1
@@ -318,6 +330,8 @@ class Model:
 
                         # Get image metrics
                         self.mse_metric(y_pred=val_pred_image, y=val_fixed_image)
+                        ncc += self.ncc_metric(val_pred_image, val_fixed_image).item()
+                        mi += self.mi_metric(val_pred_image, val_fixed_image).item()
 
                         # Get label metrics
                         self.dice_metric(y_pred=val_pred_label.byte(), y=val_fixed_label.byte())
@@ -328,6 +342,13 @@ class Model:
                     print(f"Epoch {epoch} average validation loss: {epoch_val_loss:.4f}")
 
                     # Record and reset validation metrics
+                    mse = self.mse_metric.aggregate().item()
+                    self.mse_metric.reset()
+                    mse_metric_values.append(mse)
+
+                    ncc_metric_values.append(-(ncc/step))
+                    mi_metric_values.append(-(mi/step))
+
                     dice = self.dice_metric.aggregate().item()
                     self.dice_metric.reset()
                     dice_metric_values.append(dice)
@@ -335,10 +356,6 @@ class Model:
                     hausdorff = self.hausdorff_metric.aggregate().item()
                     self.hausdorff_metric.reset()
                     hausdorff_metric_values.append(hausdorff)
-
-                    mse = self.mse_metric.aggregate().item()
-                    self.mse_metric.reset()
-                    mse_metric_values.append(mse)
 
                     if dice > best_dice:
                         best_dice = dice
@@ -349,9 +366,11 @@ class Model:
                             print("Saved new best metric model")
                     print(
                         f"Epoch: {epoch} "
-                        f"Mean Dice: {dice:.4f}\n"
-                        f"Mean Hausdorff: {hausdorff:.4f}\n"
-                        f"Mean MSE: {mse:.4f}\n"
+                        f"Mean MSE: {mse_metric_values[-1]:.4f}\n"
+                        f"Mean NCC: {ncc_metric_values[-1]:.4f}\n"
+                        f"Mean MI: {mi_metric_values[-1]:.4f}\n"
+                        f"Mean Dice: {dice_metric_values[-1]:.4f}\n"
+                        f"Mean Hausdorff: {hausdorff_metric_values[-1]:.4f}\n"
                         f"Best mean dice: {best_dice:.4f} "
                         f"at epoch: {best_dice_epoch}"
                     )
@@ -396,9 +415,11 @@ class Model:
 
         # Prepare metric dictionary
         metrics = dict()
+        metrics['mse'] = mse_metric_values
+        metrics['ncc'] = ncc_metric_values
+        metrics['mi'] = mi_metric_values
         metrics['dice'] = dice_metric_values
         metrics['hausdorff'] = hausdorff_metric_values
-        metrics['mse'] = mse_metric_values
         metrics['val loss'] = val_losses
 
         return losses, metrics
