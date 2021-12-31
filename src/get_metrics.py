@@ -77,8 +77,8 @@ def main():
     except TypeError:
         pass
 
-    metrics["NCC"] = ncc_loss/count
-    metrics["MI"] = mi_loss/count
+    metrics["NCC"] = -(ncc_loss/count)
+    metrics["MI"] = -(mi_loss/count)
 
     for m in metrics:
         if len(data_dicts) == 1:
