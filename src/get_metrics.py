@@ -56,8 +56,8 @@ def main():
         fixed_image = data["fixed_image"].to(device)
         mse_metric(y_pred=image, y=fixed_image)
         
-        ncc_loss += ncc_metric(y_pred=image, y=fixed_image).item()
-        mi_loss += mi_metric(y_pred=image, y=fixed_image).item()
+        ncc_loss += ncc_metric(image, fixed_image).item()
+        mi_loss += mi_metric(image, fixed_image).item()
         count += 1
 
         # Optionally calculate label metrics
