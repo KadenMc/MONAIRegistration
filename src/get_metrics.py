@@ -2,6 +2,7 @@ import argparse
 import torch
 import numpy as np
 from monai.metrics import DiceMetric, HausdorffDistanceMetric, MSEMetric
+from monai.losses import LocalNormalizedCrossCorrelationLoss, GlobalMutualInformationLoss
 
 # Local imports
 import argparsing as ap
@@ -41,14 +42,24 @@ def main():
     mse_metric = MSEMetric()
     dice_metric = DiceMetric(include_background=True, reduction="mean", \
         get_not_nans=False)
+    
+    ncc_metric = LocalNormalizedCrossCorrelationLoss(spatial_dims=3)
+    mi_metric = GlobalMutualInformationLoss()
 
     # Get metrics
+    ncc_loss = 0
+    mi_loss = 0
+    count = 0
     for data in loader:
         # Calculate image metrics
         image = data["moving_image"].to(device)
         fixed_image = data["fixed_image"].to(device)
         mse_metric(y_pred=image, y=fixed_image)
         
+        ncc_loss += ncc_metric(y_pred=image, y=fixed_image).item()
+        mi_loss += mi_metric(y_pred=image, y=fixed_image).item()
+        count += 1
+
         # Optionally calculate label metrics
         if "moving_label" in data and "fixed_label" in data:
             label = data["moving_label"].to(device).byte()
@@ -65,6 +76,9 @@ def main():
         metrics["Hausdorff"] = hausdorff_metric.aggregate().item()
     except TypeError:
         pass
+
+    metrics["NCC"] = ncc_loss/count
+    metrics["MI"] = mi_loss/count
 
     for m in metrics:
         if len(data_dicts) == 1:
