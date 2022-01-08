@@ -13,8 +13,9 @@ We formulate registration as a function that maps an input image pair to a defor
 
 Files with command-line arguments &amp; related **--help** functionality:
 
-- `main.py`: Train the model.
-- `infer.py`: Infer with a trained model.
+- `main.py`: Train a registration model.
+- `infer.py`: Infer &amp; perform registration with a trained model.
+- `get_metrics.py`: Get metrics from a directory of moving images and (optionally) labels.
 - `create_labels.py`: Create binary region of interest labels.
 - `preprocessing.py`: Preprocess a file or directory of files.
 - `affine.py`: Perform affine registration.
