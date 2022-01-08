@@ -440,6 +440,22 @@ class Model:
             visualize_save_path (str, None): Where to save the visualizations.
                 They will not be saved if None.
         """
+
+        # If saving, create the directories for the different saved output types
+        if save_path is not None:
+            ddf_path = join(save_path, 'ddf')
+            if not os.path.isdir(ddf_path):
+                os.mkdir(ddf_path)
+
+            pred_path = join(save_path, 'pred')
+            if not os.path.isdir(pred_path):
+                os.mkdir(pred_path)
+
+            label_path = join(save_path, 'labels')
+            if not os.path.isdir(label_path):
+                os.mkdir(label_path)
+
+
         self.model.eval()
         with torch.no_grad():
             for data in loader:
@@ -480,12 +496,12 @@ class Model:
                     ext = get_recognized_extension(filename)
                     
                     # Save files predicted image, deformation field, and label
-                    save_nii_file(join(save_path, filename[:-len(ext)] + '_ddf.nii.gz'), \
+                    save_nii_file(join(ddf_path, filename[:-len(ext)] + '.nii.gz'), \
                         ddf.astype(float64))
-                    save_nii_file(join(save_path, filename[:-len(ext)] + '_pred.nii.gz'), \
+                    save_nii_file(join(pred_path, filename[:-len(ext)] + '.nii.gz'), \
                         pred_image.astype(float64))
 
                     # Only saves if a moving label was provided
                     if pred_label is not None:
-                        save_nii_file(join(save_path, filename[:-len(ext)] + '_labels.nii.gz'), \
+                        save_nii_file(join(label_path, filename[:-len(ext)] + '.nii.gz'), \
                             pred_label.astype(float64))

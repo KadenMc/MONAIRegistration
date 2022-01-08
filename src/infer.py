@@ -16,7 +16,7 @@ def parse_arguments():
         Not required for inference.')
     parser.add_argument('--fixed_label', type=ap.file_path, help='Path to fixed labels file. Not required for inference.')
     parser.add_argument('weights_file', type=ap.file_path, help='Load model weights from file')
-    parser.add_argument('--save_path', type=ap.dir_path, help='Directory path to save inferred images, DDFs, and labels')
+    parser.add_argument('--save_path', type=ap.save_dir_path, help='Directory path to save inferred images, DDFs, and labels')
     parser.add_argument("--cache_rate", type=ap.percent, default=1, help="Percentage of training data to load/cache at once.")
     parser.add_argument("--resize_ratio", type=float, help="Ratio to which the data is resized, e.g., 0.5 with shape (100, 150, 50) -> (50, 75, 25)")
     parser.add_argument("--resize_shape", type=ap.delimited_ints, help="Shape to which the data is resized (a string of comma-delimited integers). May not be exactly this shape, but very similar")

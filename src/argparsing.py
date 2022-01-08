@@ -127,7 +127,8 @@ def save_image_path(path):
 def save_dir_path(path):
     """
     Argparsing type: Path to which one can save files in a directory.
-    This path must be to an existing directory.
+    This path must be to an existing directory, or at least its parent must
+    exist and the directory will be created.
 
     Parameters:
         path (str): Path.
@@ -135,10 +136,17 @@ def save_dir_path(path):
     Returns:
         (str): Validated directory save path.
     """
+    # Return if it exists
     if os.path.isdir(path):
         return path
+
+    # Create directory and return if its parent exists
+    if os.path.isdir(os.path.dirname(path)):
+        os.mkdir(path)
+        return path
+
     else:
-        raise ArgumentTypeError("{} must be an existing directory path".format(path))
+        raise ArgumentTypeError("{} directory must exist".format(os.path.dirname(path)))
 
 
 # Delimited types
