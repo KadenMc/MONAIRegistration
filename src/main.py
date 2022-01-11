@@ -22,7 +22,9 @@ def parse_arguments():
     parser.add_argument('--save_weights_file', default=ap.join(ap.MODEL_PATH, 'model.pth'), \
         help='Save model weights to file')
     parser.add_argument('--history', type=ap.save_image_path, default=ap.join(ap.VISUALIZE_PATH, 'history.png'), \
-        help='Path to save model history')
+        help='Path to save model history image')
+    parser.add_argument('--history_log', type=ap.save_file_path, default=ap.join(ap.VISUALIZE_PATH, 'history.pkl'), \
+        help='Path to save model history log object')
     
     # Training & data loading arguments
     parser.add_argument("--resize_ratio", type=float, help="Ratio to which the data is resized, e.g., 0.5 with shape (100, 150, 50) -> (50, 75, 25)")
@@ -90,12 +92,19 @@ def main():
         model.load_weights(args.weights_file)
 
     # Train model
-    losses, metrics = model.train(train_loader, val_loader, device, \
+    history = model.train(train_loader, val_loader, device, \
         args.max_epochs, save_weights_file=args.save_weights_file)
 
+    # Save history
+    with open(args.history_log, 'wb') as f:
+        pickle.dump(history, f)
+
+    # Code to load the pickled history object
+    #with open(args.history_log, 'rb') as f:
+        #history = pickle.load(f)
+
     # Plot history
-    vis.plot_history(losses, metrics, save_path=ap.join(ap.VISUALIZE_PATH, \
-        "history.png"), val_interval=args.val_interval)
+    vis.plot_history(history, save_path=args.history, val_interval=args.val_interval)
 
     # Perform inference on testing data
     if args.test:

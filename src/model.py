@@ -118,6 +118,23 @@ class EarlyStopping():
         
         return False
 
+class History:
+    """
+    A container class to store the training loss and validation set evaluation
+    metrics and allow for easy saving and loading with pickle.
+
+    Attributes
+    ----------
+    losses (list<float>) : Average training loss over each epoch.
+    metrics (dict of str: list<float>) : Average validation metrics every
+        self.val_interval epochs.
+    """
+
+    def __init__(self, losses, metrics):
+        self.losses = losses
+        self.metrics = metrics
+
+
 
 class Model:
     """
@@ -286,9 +303,9 @@ class Model:
             save_weights_file (str): File to save the model weights.
         
         Returns:
-            losses (list<float>): Average loss over each epoch.
-            metrics (dict of str: list<float>): Average metrics every
-                self.val_interval epochs.
+            losses (list<float>): Average training loss over each epoch.
+            metrics (dict of str: list<float>): Average validation metrics
+                every self.val_interval epochs.
         """
         # Define metric & tracking variables
         best_dice = -1
@@ -422,7 +439,8 @@ class Model:
         metrics['hausdorff'] = hausdorff_metric_values
         metrics['val loss'] = val_losses
 
-        return losses, metrics
+        history = History(losses, metrics)
+        return history
     
 
     def infer(self, loader, device, save_path=None, visualize=True, \

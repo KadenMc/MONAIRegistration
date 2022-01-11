@@ -78,19 +78,21 @@ def visualize_deformation(ddf, save_path=None):
     show_or_save(save_path)
 
 
-def plot_history(epoch_loss_values, metrics, save_path=None, val_interval=1):
+def plot_history(history, save_path=None, val_interval=1):
     """
     Plot training history.
 
     Parameters:
-        epoch_loss_values (list<float>): Average batch loss over each epoch.
-        metrics (dict of str: list<float>): Average batch metrics every
-            val_interval epochs.
+        history (class): A class storing the training loss and validation set
+            evaluation metrics.
         save_path (str, None): Figure save path.
         val_interval (int): Plot validation point every 'val_interval' epochs.
     """
     # Select the plotting backend
     select_backend(save_path)
+
+    train_losses = history.losses
+    metrics = history.metrics
 
     # Create the figure
     n_plots = 1 + len(metrics.keys())
@@ -98,8 +100,8 @@ def plot_history(epoch_loss_values, metrics, save_path=None, val_interval=1):
     
     # Plot loss
     ax[0].set_title("Epoch Average Loss")
-    x = np.arange(len(epoch_loss_values)) + 1
-    y = epoch_loss_values
+    x = np.arange(len(train_losses)) + 1
+    y = train_losses
     ax[0].set_xlabel("epoch")
     ax[0].plot(x, y)
 
