@@ -92,10 +92,9 @@ def plot_history(epoch_loss_values, metrics, save_path=None, val_interval=1):
     # Select the plotting backend
     select_backend(save_path)
 
-    num_plots = 1 + len(metrics.keys())
-    fig, ax = plt.subplots(1, num_plots)
-    #plt.figure("Training", (6*num_plots, 6))
-    #plt.subplot(1, 2, 1)
+    # Create the figure
+    n_plots = 1 + len(metrics.keys())
+    fig, ax = plt.subplots(n_plots, 1, figsize=(8, 4 * n_plots), tight_layout=True)
     
     # Plot loss
     ax[0].set_title("Epoch Average Loss")
