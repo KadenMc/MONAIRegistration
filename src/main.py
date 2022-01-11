@@ -95,16 +95,12 @@ def main():
     history = model.train(train_loader, val_loader, device, \
         args.max_epochs, save_weights_file=args.save_weights_file)
 
+    # Plot history
+    vis.plot_history(history, save_path=args.history, val_interval=args.val_interval)
+
     # Save history
     with open(args.history_log, 'wb') as f:
         pickle.dump(history, f)
-
-    # Code to load the pickled history object
-    #with open(args.history_log, 'rb') as f:
-        #history = pickle.load(f)
-
-    # Plot history
-    vis.plot_history(history, save_path=args.history, val_interval=args.val_interval)
 
     # Perform inference on testing data
     if args.test:
